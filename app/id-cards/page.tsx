@@ -1,6 +1,8 @@
 'use client';
 
-import {useState} from 'react';
+import {Suspense,useEffect,useState} from 'react';
+import {useSearchParams} from 'next/navigation';
+import {initialFilter, initialPage, persistListQuery} from '@/lib/list-query';
 import {cardsApi, dashboardApi} from '@/lib/services';
 import {cardLabel} from '@/lib/contracts';
 import {useResource} from '@/lib/use-resource';
@@ -17,15 +19,17 @@ function statusClass(status: string) {
   return 'border-slate-300 bg-slate-100 text-slate-600';
 }
 
-export default function IdCardsPage() {
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState('All');
+function IdCardsContent() {
+  const params=useSearchParams();
+  const [query, setQuery] = useState(params.get('search')??'');
+  const [status, setStatus] = useState(initialFilter(params,'status','All'));
   const [expiry, setExpiry] = useState('All');
-  const [sort, setSort] = useState('Expiry Soonest');
+  const [sort, setSort] = useState(initialFilter(params,'sort','Expiry Soonest'));
 
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(initialPage(params));
   const summary = useResource(dashboardApi);
   const state = useResource(() => cardsApi.list({page,search:query,status:status === 'All' ? undefined : status.toLowerCase().replaceAll(' ','_'),expiry:expiry === 'All' ? undefined : 'expiring',sort:sort === 'Expiry Soonest' ? 'expiry_asc' : sort === 'Newest First' ? 'issue_desc' : 'issue_asc'}), [page,query,status,expiry,sort]);
+  useEffect(()=>persistListQuery({search:query,status,page,expiry,sort}),[query,status,page,expiry,sort]);
   const filtered = (state.data?.data ?? []).map(item => ({id:item.id,card:item.number,employee:item.employee.name,initials:item.employee.name.slice(0,2),empId:item.employee.displayId,issue:item.issueDate,expiry:item.expiryDate,status:cardLabel(item),qr:cardLabel(item)==='Active' || cardLabel(item)==='Expiring Soon' ? 'Active' : 'Deactivated'}));
 
   return (
@@ -43,10 +47,10 @@ export default function IdCardsPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Active Cards" value={String(summary.data?.data.activeEmployees ?? '—')} helper="Valid QR & access credentials" valueClass="text-emerald-700" />
+          <StatCard label="Active Cards" value={String(summary.data?.data.activeCards ?? '—')} helper="Valid QR & access credentials" valueClass="text-emerald-700" />
           <StatCard label="Expiring Soon" value={String(summary.data?.data.expiringCards ?? '—')} helper="Within next 30 days" valueClass="text-amber-600" borderClass="border-l-2 border-l-yellow-400" />
           <StatCard label="Expired" value={String(summary.data?.data.expiredCards ?? '—')} helper="Needs immediate renewal" valueClass="text-rose-600" helperClass="text-rose-600" borderClass="border-l-2 border-l-red-500" />
-          <StatCard label="Deactivated" value="—" helper="Resigned or revoked" valueClass="text-slate-500" />
+          <StatCard label="Deactivated" value={String(summary.data?.data.revokedCards??'—')} helper="Resigned or revoked" valueClass="text-slate-500" />
         </div>
 
         <section className="mt-6 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
@@ -131,3 +135,5 @@ function FilterSelect({label, value, onChange, options}: {label: string; value: 
     </select>
   );
 }
+
+export default function IdCardsPage(){return <Suspense><IdCardsContent/></Suspense>;}

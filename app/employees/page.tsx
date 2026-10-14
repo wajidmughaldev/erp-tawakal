@@ -1,8 +1,10 @@
 'use client';
 
-import {useState} from 'react';
+import {Suspense,useEffect,useState} from 'react';
+import {useSearchParams} from 'next/navigation';
+import {initialFilter, initialPage, persistListQuery} from '@/lib/list-query';
 import {employeesApi} from '@/lib/services';
-import {cardLabel, displayStatus} from '@/lib/contracts';
+import {cardLabel, latestCard, displayStatus} from '@/lib/contracts';
 import {useResource} from '@/lib/use-resource';
 import {DataState} from '@/components/portal/data-state';
 import {Pagination} from '@/components/portal/pagination';
@@ -17,15 +19,17 @@ function statusClass(status: string) {
   return 'border-slate-300 bg-slate-200 text-slate-600';
 }
 
-export default function EmployeesPage() {
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState('All');
+function EmployeesContent() {
+  const params=useSearchParams();
+  const [query, setQuery] = useState(params.get('search')??'');
+  const [status, setStatus] = useState(initialFilter(params,'status','All'));
   const [cardStatus, setCardStatus] = useState('All');
   const [expiry, setExpiry] = useState('All');
 
-  const [page, setPage] = useState(1);
-  const state = useResource(() => employeesApi.list({page, search: query, status: status === 'All' ? undefined : status.toLowerCase(), cardStatus: cardStatus === 'All' ? undefined : cardStatus.toLowerCase().replaceAll(' ', '_'), expiry: expiry === 'All' ? undefined : 'expiring'}), [page, query, status, cardStatus, expiry]);
-  const filtered = (state.data?.data ?? []).map(item => ({...item, initials: item.name.split(' ').map(part => part[0]).slice(0,2).join(''), role: item.designation, employment: displayStatus(item.status), card: item.cards?.[0] ? cardLabel(item.cards[0]) : 'No Card', expiry: item.cards?.[0]?.expiryDate ?? '—'}));
+  const [page, setPage] = useState(initialPage(params));
+  const state = useResource(() => employeesApi.list({page, search: query, status: status === 'All' ? undefined : status.toLowerCase(), cardStatus: cardStatus === 'All' ? undefined : cardStatus==='Deactivated'?'revoked':cardStatus.toLowerCase().replaceAll(' ', '_'), expiry: expiry === 'All' ? undefined : 'expiring'}), [page, query, status, cardStatus, expiry]);
+  useEffect(()=>persistListQuery({search:query,status,page,cardStatus,expiry}),[query,status,page,cardStatus,expiry]);
+  const filtered = (state.data?.data ?? []).map(item => ({...item, initials: item.name.split(' ').map(part => part[0]).slice(0,2).join(''), role: item.designation, employment: displayStatus(item.status), card: latestCard(item.cards) ? cardLabel(latestCard(item.cards)) : 'No Card', expiry: latestCard(item.cards)?.expiryDate ?? '—'}));
 
   return (
     <PortalShell>
@@ -138,3 +142,5 @@ function FilterSelect({
     </select>
   );
 }
+
+export default function EmployeesPage(){return <Suspense><EmployeesContent/></Suspense>;}

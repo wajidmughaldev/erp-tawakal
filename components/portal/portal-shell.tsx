@@ -34,7 +34,9 @@ export function PortalShell({children}: {children: React.ReactNode}) {
     return () => window.removeEventListener('keydown', close);
   }, [pathname]);
   useEffect(() => {
-    request<{unreadCount: number}>('/notifications?summary=true').then(result => setUnread(result.unreadCount)).catch(() => setUnread(null));
+    const update=()=>request<{unreadCount: number}>('/notifications?summary=true').then(result=>setUnread(result.unreadCount)).catch(()=>setUnread(null));
+    void update();window.addEventListener('portal-notifications-changed',update);
+    return ()=>window.removeEventListener('portal-notifications-changed',update);
   }, [pathname]);
   async function logout() {
     if (loggingOut) return;
@@ -58,7 +60,7 @@ export function PortalShell({children}: {children: React.ReactNode}) {
               <span className="block text-xs text-white/55">Smart ID Portal</span>
             </span>
           </Link>
-          <nav className="px-3 py-4">
+          <nav aria-label="Main navigation" className="px-3 py-4">
             <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-white/45">Main Menu</div>
             {nav.map((item) => {
               const Icon = item.icon;
@@ -101,7 +103,7 @@ export function PortalShell({children}: {children: React.ReactNode}) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/notifications" className="relative grid size-10 place-items-center rounded-md border border-slate-200 hover:bg-slate-50">
+            <Link href="/notifications" aria-label={unread!==null?`Notifications (${unread} unread)`:"Notifications"} className="relative grid size-10 place-items-center rounded-md border border-slate-200 hover:bg-slate-50">
               <Bell size={18} />
               {unread !== null && unread > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 text-[11px] text-white">{unread}</span>}
             </Link>

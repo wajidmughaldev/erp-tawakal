@@ -45,14 +45,16 @@ export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'a
   useEffect(()=>{const warn=(e:BeforeUnloadEvent)=>{if(dirty.current){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[]);
   useEffect(()=>{const click=(event:MouseEvent)=>{const link=(event.target as Element).closest('a');if(link && dirty.current){if(!window.confirm(language==='ur'?'غیر محفوظ تبدیلیاں ختم کریں؟':'Discard unsaved changes?')){event.preventDefault();event.stopPropagation();}else dirty.current=false;}};document.addEventListener('click',click,true);return()=>document.removeEventListener('click',click,true);},[language]);
   useEffect(()=>{
-    const currentUrl=window.location.href;const currentState=window.history.state;
-    const back=(event:PopStateEvent)=>{
-      if(!dirty.current)return;
-      if(window.confirm(language==='ur'?'غیر محفوظ تبدیلیاں ختم کریں؟':'Discard unsaved changes?')){dirty.current=false;return;}
-      event.stopImmediatePropagation();
-      window.history.pushState(currentState,'',currentUrl);
+    // shortcut: older browsers without Navigation API keep link/reload guards; add a legacy router blocker if required.
+    const navigation=(window as Window & {navigation?:EventTarget}).navigation;
+    const guard=(event:Event)=>{
+      const navigate=event as Event & {navigationType?:string};
+      if(!dirty.current||navigate.navigationType!=='traverse'||!event.cancelable)return;
+      if(window.confirm(language==='ur'?'غیر محفوظ تبدیلیاں ختم کریں؟':'Discard unsaved changes?'))dirty.current=false;
+      else event.preventDefault();
     };
-    window.addEventListener('popstate',back,true);return()=>window.removeEventListener('popstate',back,true);
+    navigation?.addEventListener('navigate',guard);
+    return()=>navigation?.removeEventListener('navigate',guard);
   },[language]);
   useEffect(()=>{if(!photo){setPreview(employee?.photo??'');return;}const url=URL.createObjectURL(photo);setPreview(url);return()=>URL.revokeObjectURL(url);},[photo,employee?.photo]);
   function update(key:string,value:unknown){dirty.current=true;setData(previous=>({...previous,[key]:value}));}
@@ -94,7 +96,7 @@ export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'a
         <div className="mb-5 flex items-start justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-[18px] font-semibold">{candidate?'Candidate Registration':language==='ur'?formTranslations.ur.mainHeading:isAdd?'Add Employee - Enrollment Dossier':'Edit Employee - Enrollment Dossier'}</h1>
+              <h1 className="text-[18px] font-semibold">{language==='ur'?(candidate?'امیدوار کی رجسٹریشن':formTranslations.ur.mainHeading):candidate?'Candidate Registration':isAdd?'Add Employee - Enrollment Dossier':'Edit Employee - Enrollment Dossier'}</h1>
               <span className="rounded-md bg-blue-600 px-2 py-1 text-[10px] font-medium text-white">Tawakkal Enterprises Channel 2</span>
             </div>
             <p className="mt-2 text-[11px] text-slate-600">{formTranslations[language].mainSubheading}</p>
@@ -114,6 +116,7 @@ export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'a
                   key={label}
                   type="button"
                   className={`relative flex flex-col items-center gap-2 px-2 py-3 text-center text-[10px] ${active ? 'border-b-2 border-[#123b6d] font-semibold text-[#123b6d]' : complete ? 'border-b-2 border-emerald-500 text-emerald-700' : 'text-slate-600'}`}
+                  disabled={busy}
                   onClick={() => setStep(number)}
                 >
                   <span className={`grid size-5 place-items-center rounded-full text-[10px] font-semibold ${active ? 'bg-[#123b6d] text-white' : complete ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-600'}`}>{number}</span>
@@ -123,25 +126,25 @@ export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'a
             })}
           </div>
 
-          <div className="p-5">
+          <fieldset disabled={busy} className="p-5">
             {step === 1 ? <StepOne /> : null}
             {step === 2 ? <StepTwo /> : null}
             {step === 3 ? <StepThree /> : null}
             {step === 4 ? <StepFour /> : null}
             {step === 5 ? <StepFive /> : null}
-          </div>
+          </fieldset>
 
           <div className="flex items-center justify-between px-5 pb-5">
             <button
               className="h-9 rounded-md border border-slate-500 px-3 text-[12px] text-slate-700 disabled:opacity-0"
               type="button"
-              disabled={step === 1}
+              disabled={step === 1||busy}
               onClick={() => setStep((value) => Math.max(1, value - 1))}
             >
               {language==='ur'?'پچھلا مرحلہ':'← Back to Step'} {step - 1}
             </button>
             {step < 5 ? (
-              <button className="h-9 rounded-md bg-[#123b6d] px-4 text-[12px] font-medium text-white hover:bg-[#0d2f58]" type="button" onClick={next}>
+              <button className="h-9 rounded-md bg-[#123b6d] px-4 text-[12px] font-medium text-white hover:bg-[#0d2f58]" type="button" disabled={busy} onClick={next}>
                 {language==='ur'?'جاری رکھیں':'Continue to'} {language==='ur'?['رابطہ کی تفصیلات','سابقہ ملازمت','گاڑی / شعبہ','دستاویزات و حلف نامہ'][step-1]:step === 1 ? 'Contact Details' : step === 2 ? 'Employment Record' : step === 3 ? 'Vehicle / Role Info' : 'Documents & Affidavit'} &rarr;
               </button>
             ) : (

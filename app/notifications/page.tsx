@@ -1,16 +1,12 @@
+'use client';
 import {AlertTriangle, CheckCircle2, Info, XCircle} from 'lucide-react';
+import {useState} from 'react';
+import Link from 'next/link';
+import {notificationsApi} from '@/lib/services';
+import {useResource} from '@/lib/use-resource';
+import {DataState} from '@/components/portal/data-state';
+import {Pagination} from '@/components/portal/pagination';
 import {PortalShell} from '@/components/portal/portal-shell';
-
-const alerts = [
-  {type: 'warning', title: 'ID Card Expiring in 5 Days - Muhammad Ali', text: 'Card validity terminates on 14 Oct 2026. Action required to avoid access gate disruptions.', time: '12 minutes ago', action: 'Renew Now', unread: true},
-  {type: 'danger', title: 'ID Card Expired - Nida Siddiqui', text: 'Card expired 4 days ago on 12 Sep 2026. QR verification status is now inactive.', time: '45 minutes ago', action: 'Renew Card', unread: true},
-  {type: 'info', title: 'Replacement Card Reissued - Muhammad Ali', text: 'Previous card CARD-00421 was permanently deactivated. New card CARD-00422 registered.', time: '2 hours ago', action: 'View Card', unread: true},
-  {type: 'warning', title: 'ID Card Expiring in 9 Days - Tariq Khan', text: 'Expiry on 18 Oct 2026. Review profile to extend validity for 11 months.', time: '3 hours ago', action: 'Renew Now'},
-  {type: 'warning', title: 'ID Card Expiring in 12 Days - Sara Ahmed', text: 'Card validity ends on 21 Oct 2026.', time: '5 hours ago', action: 'Renew Now'},
-  {type: 'danger', title: 'ID Card Expired - Farhan Siddique', text: 'Expired 14 days ago. Security badge reader access blocked.', time: '1 day ago', action: 'View Employee'},
-  {type: 'success', title: 'New Smart ID Card Issued - Usman Farooq', text: 'Card issued with 11 months validity. Digital QR verification enabled.', time: '2 days ago', action: 'View Card'},
-  {type: 'warning', title: 'ID Card Expiring in 16 Days - Bilal Raza', text: 'Card expires on 25 Oct 2026.', time: '2 days ago', action: 'Renew Now'},
-];
 
 const iconStyles = {
   warning: 'bg-yellow-100 text-orange-500',
@@ -20,6 +16,12 @@ const iconStyles = {
 };
 
 export default function NotificationsPage() {
+ const [tab,setTab]=useState('All');const [page,setPage]=useState(1);const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+ const categories:Record<string,string>={'Expiring Soon':'expiring','Expired':'expired','Card Activity':'card_activity','Unread':'unread'};
+ const state=useResource(()=>notificationsApi.list({page,category:categories[tab]}),[page,tab]);
+ const alerts=(state.data?.data??[]).map(item=>({...item,type:item.category==='expired'?'danger':item.category==='expiring'?'warning':'info',text:'',time:item.createdAt,unread:!item.readAt,action:'View Record',href:item.target?item.target.type==='employee'?'/employees/'+encodeURIComponent(item.target.id):item.target.type==='card'?'/id-cards/'+encodeURIComponent(item.target.id):'/employee-requests':undefined}));
+ async function mutate(id?:string){if(busy)return;if(!id&&!window.confirm('Clear read notifications?'))return;setBusy(true);setError('');try{if(id)await notificationsApi.read(id);else await notificationsApi.clearRead();state.refetch();window.dispatchEvent(new Event('portal-notifications-changed'));}catch(cause){setError(cause instanceof Error?cause.message:'Unable to update notifications.');}finally{setBusy(false);}}
+
   return (
     <PortalShell>
       <div className="min-h-[calc(100vh-124px)] bg-[#f4f7fb] text-slate-950">
@@ -29,18 +31,19 @@ export default function NotificationsPage() {
               <h1 className="text-[20px] font-semibold leading-tight">System Alerts & Notifications</h1>
               <p className="mt-2 text-[12px] text-slate-600">Expiry alerts, renewal requests, and card lifecycle activity notices.</p>
             </div>
-            <button className="text-[12px] text-slate-700 hover:text-[#123b6d]" type="button">Clear Read Notifications</button>
+            <button className="text-[12px] text-slate-700 hover:text-[#123b6d]" type="button" disabled={busy} onClick={()=>void mutate()}>Clear Read Notifications</button>
           </div>
 
           <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
             <nav className="flex border-b border-slate-200 px-4 text-[11px]">
-              {['All (14)', 'Unread (3)', 'Expiring Soon (8)', 'Expired (4)', 'Card Activity (2)'].map((tab, index) => (
-                <button key={tab} className={`px-4 py-4 ${index === 0 ? 'border-b border-[#123b6d] font-semibold text-[#123b6d]' : 'text-slate-600'}`} type="button">
-                  {tab}
+              {['All','Unread','Expiring Soon','Expired','Card Activity'].map((label, index) => (
+                <button key={label} className={`px-4 py-4 ${label === tab ? 'border-b border-[#123b6d] font-semibold text-[#123b6d]' : 'text-slate-600'}`} type="button" onClick={()=>{setTab(label);setPage(1);}}>
+                  {label}
                 </button>
               ))}
             </nav>
 
+            <DataState {...state} retry={state.refetch} empty={!state.loading&&!alerts.length}/>{error&&<p role="alert" className="p-4 text-sm text-red-600">{error}</p>}
             <div className="divide-y divide-slate-200">
               {alerts.map((alert) => (
                 <div key={`${alert.title}-${alert.time}`} className="flex gap-4 px-5 py-4">
@@ -57,13 +60,14 @@ export default function NotificationsPage() {
                     </div>
                     <p className="mt-2 text-[11px] text-slate-700">{alert.text}</p>
                     <div className="mt-3 flex items-center gap-3">
-                      <button className="rounded-sm border border-blue-600 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-50" type="button">{alert.action}</button>
-                      <button className="text-[11px] text-slate-700 hover:text-[#123b6d]" type="button">Mark Read</button>
+                      {alert.href&&<Link className="rounded-sm border border-blue-600 px-2 py-1 text-[11px] font-medium text-blue-700 hover:bg-blue-50" href={alert.href}>{alert.action}</Link>}
+                      <button className="text-[11px] text-slate-700 hover:text-[#123b6d]" type="button" disabled={busy||!alert.unread} onClick={()=>void mutate(alert.id)}>{alert.unread?'Mark Read':'Read'}</button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+            <Pagination meta={state.data?.meta} onPage={setPage}/>
           </section>
         </div>
       </div>

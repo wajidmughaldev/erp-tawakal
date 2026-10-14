@@ -37,6 +37,9 @@ export function cardLabel(card: Pick<IDCard, 'status' | 'expiryDate'>, now = new
 export function currentCard(cards: IDCard[] = []) {
   return cards.filter(card => card.status === 'active').sort((a,b) => Date.parse(b.issueDate) - Date.parse(a.issueDate))[0];
 }
+export function latestCard(cards: IDCard[] = []) {
+  return [...cards].sort((a,b) => Date.parse(b.issueDate) - Date.parse(a.issueDate))[0];
+}
 export function daysToExpiry(date: string, now = new Date()) {
   const end = Date.parse(`${date.slice(0, 10)}T00:00:00Z`);
   const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());

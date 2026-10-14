@@ -17,12 +17,14 @@ export function Dialog({
   className?: string;
 }) {
   const panel = React.useRef<HTMLDivElement>(null);
+  const close = React.useRef(onClose);
+  close.current = onClose;
   React.useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement;
     panel.current?.focus();
     const keydown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') close.current();
       if (event.key === 'Tab') {
         const controls = panel.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]');
         if (!controls?.length) {event.preventDefault(); return;}
@@ -33,7 +35,7 @@ export function Dialog({
     };
     document.addEventListener('keydown', keydown);
     return () => {document.removeEventListener('keydown', keydown); previous?.focus();};
-  }, [open, onClose]);
+  }, [open]);
   if (!open) return null;
 
   return (
