@@ -1,18 +1,14 @@
 'use client';
 
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
+import {cardsApi, dashboardApi} from '@/lib/services';
+import {cardLabel} from '@/lib/contracts';
+import {useResource} from '@/lib/use-resource';
+import {DataState} from '@/components/portal/data-state';
+import {Pagination} from '@/components/portal/pagination';
 import Link from 'next/link';
 import {ChevronDown, ExternalLink, Search} from 'lucide-react';
 import {PortalShell} from '@/components/portal/portal-shell';
-
-const cardRows = [
-  {card: 'CARD-00312', employee: 'Muhammad Ali', initials: 'MA', empId: 'EMP-00123', issue: '15 Aug 2024', expiry: '15 Jul 2025', status: 'Replaced', qr: 'Deactivated'},
-  {card: 'CARD-00360', employee: 'Nida Siddiqui', initials: 'NS', empId: 'EMP-00201', issue: '12 Oct 2025', expiry: '12 Sep 2026', status: 'Expired', qr: 'Deactivated'},
-  {card: 'CARD-00398', employee: 'Muhammad Ali', initials: 'MA', empId: 'EMP-00123', issue: '14 Oct 2025', expiry: '14 Oct 2026', status: 'Expiring Soon', qr: 'Active'},
-  {card: 'CARD-00401', employee: 'Tariq Khan', initials: 'TK', empId: 'EMP-00142', issue: '18 Nov 2025', expiry: '18 Oct 2026', status: 'Expiring Soon', qr: 'Active'},
-  {card: 'CARD-00403', employee: 'Sara Ahmed', initials: 'SA', empId: 'EMP-00155', issue: '21 Nov 2025', expiry: '21 Oct 2026', status: 'Expiring Soon', qr: 'Active'},
-  {card: 'CARD-00407', employee: 'Bilal Raza', initials: 'BR', empId: 'EMP-00169', issue: '25 Nov 2025', expiry: '25 Oct 2026', status: 'Expiring Soon', qr: 'Active'},
-];
 
 function statusClass(status: string) {
   if (status === 'Active') return 'border-emerald-200 bg-emerald-100 text-emerald-700';
@@ -27,16 +23,10 @@ export default function IdCardsPage() {
   const [expiry, setExpiry] = useState('All');
   const [sort, setSort] = useState('Expiry Soonest');
 
-  const filtered = useMemo(() => {
-    return cardRows.filter((card) => {
-      const text = `${card.card} ${card.employee} ${card.empId}`.toLowerCase();
-      return (
-        text.includes(query.toLowerCase()) &&
-        (status === 'All' || card.status === status) &&
-        (expiry === 'All' || card.status === 'Expiring Soon')
-      );
-    });
-  }, [expiry, query, status]);
+  const [page, setPage] = useState(1);
+  const summary = useResource(dashboardApi);
+  const state = useResource(() => cardsApi.list({page,search:query,status:status === 'All' ? undefined : status.toLowerCase().replaceAll(' ','_'),expiry:expiry === 'All' ? undefined : 'expiring',sort:sort === 'Expiry Soonest' ? 'expiry_asc' : sort === 'Newest First' ? 'issue_desc' : 'issue_asc'}), [page,query,status,expiry,sort]);
+  const filtered = (state.data?.data ?? []).map(item => ({id:item.id,card:item.number,employee:item.employee.name,initials:item.employee.name.slice(0,2),empId:item.employee.displayId,issue:item.issueDate,expiry:item.expiryDate,status:cardLabel(item),qr:cardLabel(item)==='Active' || cardLabel(item)==='Expiring Soon' ? 'Active' : 'Deactivated'}));
 
   return (
     <PortalShell>
@@ -53,10 +43,10 @@ export default function IdCardsPage() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard label="Active Cards" value="204" helper="Valid QR & access credentials" valueClass="text-emerald-700" />
-          <StatCard label="Expiring Soon" value="12" helper="Within next 30 days" valueClass="text-amber-600" borderClass="border-l-2 border-l-yellow-400" />
-          <StatCard label="Expired" value="7" helper="Needs immediate renewal" valueClass="text-rose-600" helperClass="text-rose-600" borderClass="border-l-2 border-l-red-500" />
-          <StatCard label="Deactivated" value="9" helper="Resigned or revoked" valueClass="text-slate-500" />
+          <StatCard label="Active Cards" value={String(summary.data?.data.activeEmployees ?? '—')} helper="Valid QR & access credentials" valueClass="text-emerald-700" />
+          <StatCard label="Expiring Soon" value={String(summary.data?.data.expiringCards ?? '—')} helper="Within next 30 days" valueClass="text-amber-600" borderClass="border-l-2 border-l-yellow-400" />
+          <StatCard label="Expired" value={String(summary.data?.data.expiredCards ?? '—')} helper="Needs immediate renewal" valueClass="text-rose-600" helperClass="text-rose-600" borderClass="border-l-2 border-l-red-500" />
+          <StatCard label="Deactivated" value="—" helper="Resigned or revoked" valueClass="text-slate-500" />
         </div>
 
         <section className="mt-6 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
@@ -67,16 +57,17 @@ export default function IdCardsPage() {
                 className="h-9 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-[12px] outline-none focus:border-blue-600"
                 placeholder="Search card number, employee name or employee ID"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {setQuery(event.target.value); setPage(1);}}
               />
             </div>
-            <FilterSelect label="Status" value={status} onChange={setStatus} options={['All', 'Active', 'Expiring Soon', 'Expired', 'Replaced']} />
-            <FilterSelect label="Expiry" value={expiry} onChange={setExpiry} options={['All', 'Expiring Soon']} />
-            <FilterSelect label="Sort" value={sort} onChange={setSort} options={['Expiry Soonest', 'Newest First', 'Oldest First']} />
+            <FilterSelect label="Status" value={status} onChange={value => {setStatus(value); setPage(1);}} options={['All', 'Active', 'Expiring Soon', 'Expired', 'Replaced']} />
+            <FilterSelect label="Expiry" value={expiry} onChange={value => {setExpiry(value); setPage(1);}} options={['All', 'Expiring Soon']} />
+            <FilterSelect label="Sort" value={sort} onChange={value => {setSort(value); setPage(1);}} options={['Expiry Soonest', 'Newest First', 'Oldest First']} />
           </div>
         </section>
 
         <section className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <DataState {...state} empty={!state.loading && !filtered.length} retry={state.refetch} />
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-slate-50 text-[10px] uppercase tracking-[0.08em] text-slate-500">
@@ -108,10 +99,7 @@ export default function IdCardsPage() {
                     <td className="px-4 py-[13px]"><span className={`rounded-md border px-2 py-1 text-[10px] font-medium ${statusClass(card.status)}`}>{card.status}</span></td>
                     <td className={`px-4 py-[13px] text-[12px] ${card.qr === 'Active' ? 'text-emerald-700' : 'text-slate-600'}`}>{card.qr}</td>
                     <td className="px-4 py-[13px] text-right">
-                      <button className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-500/80 px-2.5 text-[12px] text-slate-700 hover:bg-slate-50" type="button">
-                        Actions
-                        <ChevronDown size={13} />
-                      </button>
+                      <Link href={`/id-cards/${encodeURIComponent(card.id)}`} className="inline-flex h-8 items-center rounded-md border border-slate-500/80 px-2.5 text-[12px]">View / Actions</Link>
                     </td>
                   </tr>
                 ))}
@@ -119,15 +107,7 @@ export default function IdCardsPage() {
             </table>
           </div>
 
-          <div className="flex flex-col justify-between gap-3 border-t border-slate-200 px-4 py-4 text-[12px] text-slate-700 sm:flex-row sm:items-center">
-            <span>Showing 1 to {filtered.length} of 12 entries</span>
-            <div className="flex items-center">
-              <button className="h-8 rounded-l-md border border-slate-200 bg-slate-100 px-3">Previous</button>
-              <button className="h-8 border-y border-slate-200 bg-[#123b6d] px-3 text-white">1</button>
-              <button className="h-8 border border-slate-200 px-3">2</button>
-              <button className="h-8 rounded-r-md border border-slate-200 px-3">Next</button>
-            </div>
-          </div>
+          <Pagination meta={state.data?.meta} onPage={setPage} />
         </section>
       </div>
     </PortalShell>

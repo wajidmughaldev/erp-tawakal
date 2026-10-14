@@ -5,33 +5,26 @@ import {useRouter} from 'next/navigation';
 import {Eye, ShieldCheck} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
-import {Badge} from '@/components/ui/badge';
+import {auth} from '@/lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (loading) return;
     setError('');
-    if (!email || !password) {
-      setError('Please enter your email and password.');
-      return;
-    }
-
-    const ok = (email === 'admin@example.com' && password === 'password') || (email === 'manager@example.com' && password === 'password123');
-    if (!ok) {
-      setError('Invalid login credentials.');
-      return;
-    }
-
+    if (!email.trim() || !password) {setError('Please enter your email/username and password.'); return;}
+    const remember = new FormData(e.currentTarget).get('remember') === 'on';
     setLoading(true);
-    window.localStorage.setItem('portal_auth', JSON.stringify({email, loggedInAt: new Date().toISOString()}));
-    setTimeout(() => router.push('/dashboard'), 450);
+    try {await auth.login(email.trim(), password, remember); setPassword(''); router.replace('/dashboard');}
+    catch (cause) {setError(cause instanceof Error ? cause.message : 'Unable to sign in.');}
+    finally {setLoading(false);}
   }
 
   return (
@@ -72,42 +65,25 @@ export default function LoginPage() {
           <form className="mt-6 space-y-4" onSubmit={submit}>
             <label className="block text-sm font-medium text-slate-600">
               Email or Username
-              <Input className="mt-1" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@example.com" />
+              <Input className="mt-1" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email or username" autoComplete="username" />
             </label>
             <label className="block text-sm font-medium text-slate-600">
               Password
               <div className="mt-1 flex">
-                <Input className="rounded-r-none" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} />
+                <Input className="rounded-r-none" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
                 <Button className="rounded-l-none border-l-0" type="button" variant="outline" onClick={() => setShowPassword((value) => !value)} aria-label="Toggle password visibility">
                   <Eye size={16} />
                 </Button>
               </div>
             </label>
             <label className="flex items-center gap-2 text-sm text-slate-600">
-              <input type="checkbox" className="size-4 rounded border-slate-300" />
+              <input type="checkbox" name="remember" className="size-4 rounded border-slate-300" />
               Remember me on this workstation
             </label>
-            <Button className="w-full py-2.5" disabled={loading}>{loading ? 'Redirecting...' : 'Sign In'}</Button>
+            <Button className="w-full py-2.5" disabled={loading}>{loading ? 'Signing in…' : 'Sign In'}</Button>
           </form>
 
-          <div className="mt-5 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
-            <div className="mb-3 flex items-center justify-between">
-              <strong className="text-slate-900">Demo Login Accounts</strong>
-              <Badge>Tawakkal Ent.</Badge>
-            </div>
-            {[
-              ['Noman (System Admin)', 'admin@example.com', 'password'],
-              ['Bilal Tariq (Branch Manager)', 'manager@example.com', 'password123'],
-            ].map(([name, demoEmail, demoPassword]) => (
-              <div key={demoEmail} className="mb-2 flex items-center justify-between rounded-md border border-slate-200 bg-white p-2 last:mb-0">
-                <div>
-                  <div className="font-medium text-slate-900">{name}</div>
-                  <div className="text-xs"><code>{demoEmail}</code> · <code>{demoPassword}</code></div>
-                </div>
-                <Button type="button" variant="outline" className="h-8 px-2" onClick={() => { setEmail(demoEmail); setPassword(demoPassword); }}>Fill</Button>
-              </div>
-            ))}
-          </div>
+
         </div>
       </section>
     </main>

@@ -1,0 +1,52 @@
+import {request, queryString} from './api-client';
+import type {Employee, IDCard, EmployeeRequest, RegistrationInvite, InviteValidation, Manager, Notification, ListQuery, PageResult, Result, Dossier, EmploymentAction, PublicVerification, DashboardSummary, DocumentRecord} from './contracts';
+const key = encodeURIComponent;
+const json = (body: unknown, method = 'POST') => ({method, body: JSON.stringify(body)});
+function resource<T>(path: string) {
+  return {list: (query: ListQuery = {}) => request<PageResult<T>>(path + queryString(query)), get: (id: string) => request<Result<T>>(`${path}/${key(id)}`)};
+}
+export function dossierBody(dossier: Dossier, photo?: File, edit = false) {
+  const body = new FormData();
+  body.set('dossier', JSON.stringify({...dossier, employers: dossier.employers.filter(row => [row.organization, row.designation, row.duration, row.address, row.phone].some(value => value.trim())), ...(dossier.roleCategory === 'office' ? {vehicleRegistration: '', drivingLicence: '', tokenTaxStatus: ''} : {})}));
+  if (photo) body.set('photo', photo);
+  if (edit) body.set('_method', 'PATCH');
+  return body;
+}
+export const employeesApi = {
+  ...resource<Employee>('/employees'),
+  create: (dossier: Dossier, photo?: File) => request<Result<Employee>>('/employees', {method: 'POST', body: dossierBody(dossier, photo)}),
+  update: (id: string, dossier: Dossier, photo?: File) => request<Result<Employee>>(`/employees/${key(id)}`, {method: 'POST', body: dossierBody(dossier, photo, true)}),
+  action: (id: string, action: EmploymentAction) => request<Result<Employee>>(`/employees/${key(id)}/actions`, json(action)),
+  documents: (id: string) => request<Result<DocumentRecord[]>>(`/employees/${key(id)}/documents`),
+};
+export const requestsApi = {
+  ...resource<EmployeeRequest>('/employee-requests'),
+  submit: (token: string, dossier: Dossier, photo?: File) => {const body = dossierBody(dossier, photo); body.set('token', token); return request<Result<EmployeeRequest>>('/employee-requests', {method: 'POST', body, public: true});},
+  approve: (id: string) => request<Result<EmployeeRequest>>(`/employee-requests/${key(id)}/approve`, json({})),
+  reject: (id: string, reason: string) => request<Result<EmployeeRequest>>(`/employee-requests/${key(id)}/reject`, json({reason})),
+};
+export const invitesApi = {
+  ...resource<RegistrationInvite>('/registration-invites'),
+  validate: (token: string) => request<InviteValidation>('/registration-invites/validate', {...json({token}), public: true}),
+  create: (body: {candidateName: string; designation: string; department: string; expiresAt: string}) => request<Result<RegistrationInvite>>('/registration-invites', json(body)),
+};
+export const cardsApi = {
+  ...resource<IDCard>('/id-cards'),
+  issue: (employeeId: string, validityYears: number) => request<Result<IDCard>>('/id-cards', json({employeeId, validityYears})),
+  renew: (id: string, option: 'existing' | 'new_physical') => request<Result<IDCard>>(`/id-cards/${key(id)}/renew`, json({option})),
+  reissue: (id: string, reason: string, acknowledged: boolean) => request<Result<IDCard>>(`/id-cards/${key(id)}/reissue`, json({reason, acknowledged})),
+  deactivate: (id: string, reason: string) => request<Result<IDCard>>(`/id-cards/${key(id)}/deactivate`, json({reason})),
+  verify: (token: string) => request<PublicVerification>('/verify-card', {...json({token}), public: true}),
+};
+export const managersApi = {
+  ...resource<Manager>('/managers'),
+  create: (body: Omit<Manager, 'id'> & {initialPassword: string}) => request<Result<Manager>>('/managers', json(body)),
+  update: (id: string, body: Omit<Manager, 'id'>) => request<Result<Manager>>(`/managers/${key(id)}`, json(body, 'PATCH')),
+  remove: (id: string) => request<void>(`/managers/${key(id)}`, {method: 'DELETE'}),
+};
+export const notificationsApi = {
+  ...resource<Notification>('/notifications'),
+  read: (id: string) => request<Result<Notification>>(`/notifications/${key(id)}/read`, json({})),
+  clearRead: () => request<void>('/notifications/clear-read', json({})),
+};
+export const dashboardApi = () => request<Result<DashboardSummary>>('/dashboard/summary');

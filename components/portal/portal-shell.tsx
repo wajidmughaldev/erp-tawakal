@@ -3,7 +3,11 @@
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {Bell, CreditCard, Home, LogOut, Menu, ShieldCheck, UserCog, Users} from 'lucide-react';
-import {notifications} from '@/lib/portal-data';
+import {useEffect, useState} from 'react';
+import {auth} from '@/lib/auth';
+import {useSession} from './session-provider';
+import {request} from '@/lib/api-client';
+import {useRouter} from 'next/navigation';
 import {Badge} from '@/components/ui/badge';
 
 const nav = [
@@ -17,10 +21,33 @@ const nav = [
 
 export function PortalShell({children}: {children: React.ReactNode}) {
   const pathname = usePathname();
+  const router = useRouter();
+  const {user} = useSession();
+  const [open, setOpen] = useState(false);
+  const [unread, setUnread] = useState<number | null>(null);
+  const [logoutError, setLogoutError] = useState('');
+  const [loggingOut, setLoggingOut] = useState(false);
+  useEffect(() => {
+    setOpen(false);
+    const close = (e: KeyboardEvent) => {if (e.key === 'Escape') setOpen(false);};
+    window.addEventListener('keydown', close);
+    return () => window.removeEventListener('keydown', close);
+  }, [pathname]);
+  useEffect(() => {
+    request<{unreadCount: number}>('/notifications?summary=true').then(result => setUnread(result.unreadCount)).catch(() => setUnread(null));
+  }, [pathname]);
+  async function logout() {
+    if (loggingOut) return;
+    setLoggingOut(true); setLogoutError('');
+    try {await auth.logout(); router.replace('/login');}
+    catch (cause) {setLogoutError(cause instanceof Error ? cause.message : 'Unable to sign out.');}
+    finally {setLoggingOut(false);}
+  }
 
   return (
     <div className="min-h-screen bg-[var(--bg-page)]">
-      <aside className="no-print fixed left-0 top-0 z-30 hidden h-screen w-[250px] flex-col justify-between bg-[var(--brand-dark)] text-white lg:flex">
+      {open && <button aria-label="Close navigation" onClick={() => setOpen(false)} className="no-print fixed inset-0 z-20 bg-black/40 lg:hidden" />}
+      <aside id="portal-navigation" className={`no-print fixed left-0 top-0 z-30 h-screen w-[250px] flex-col justify-between bg-[var(--brand-dark)] text-white ${open ? 'flex' : 'hidden'} lg:flex`}>
         <div>
           <Link href="/dashboard" className="flex h-[68px] items-center border-b border-white/10 px-5">
             <span className="mr-3 grid size-9 place-items-center rounded-md border border-[var(--brand-gold)] bg-[#d4af37]/15 text-[var(--brand-gold)]">
@@ -52,19 +79,20 @@ export function PortalShell({children}: {children: React.ReactNode}) {
           </nav>
         </div>
         <div className="border-t border-white/10 bg-black/15 p-4 text-xs text-white/60">
-          <div className="font-semibold text-white">Noman</div>
-          <div>System Administrator</div>
-          <Link href="/login" className="mt-3 inline-flex items-center gap-2 text-white/70 hover:text-white">
+          <div className="font-semibold text-white">{user?.name}</div>
+          <div>{user?.role}</div>
+          <button type="button" disabled={loggingOut} onClick={() => void logout()} className="mt-3 inline-flex items-center gap-2 text-white/70 hover:text-white">
             <LogOut size={15} />
-            Sign out
-          </Link>
+            {loggingOut ? 'Signing out…' : 'Sign out'}
+          </button>
+          {logoutError && <p role="alert" className="mt-2 text-red-200">{logoutError}</p>}
         </div>
       </aside>
 
       <main className="lg:ml-[250px]">
         <header className="no-print sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-slate-200 bg-white px-4 lg:px-7">
           <div className="flex items-center gap-3">
-            <button className="grid size-9 place-items-center rounded-md border border-slate-200 lg:hidden" type="button">
+            <button aria-label="Toggle navigation" aria-expanded={open} aria-controls="portal-navigation" onClick={() => setOpen(value => !value)} className="grid size-9 place-items-center rounded-md border border-slate-200 lg:hidden" type="button">
               <Menu size={18} />
             </button>
             <div>
@@ -75,10 +103,10 @@ export function PortalShell({children}: {children: React.ReactNode}) {
           <div className="flex items-center gap-3">
             <Link href="/notifications" className="relative grid size-10 place-items-center rounded-md border border-slate-200 hover:bg-slate-50">
               <Bell size={18} />
-              <span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 text-[11px] text-white">{notifications.length}</span>
+              {unread !== null && unread > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-1.5 text-[11px] text-white">{unread}</span>}
             </Link>
             <Badge tone="success" className="hidden sm:inline-flex">Portal Active</Badge>
-            <div className="grid size-9 place-items-center rounded-full bg-[var(--brand-deep)] text-sm font-semibold text-white">N</div>
+            <div className="grid size-9 place-items-center rounded-full bg-[var(--brand-deep)] text-sm font-semibold text-white">{user?.name.slice(0, 1)}</div>
           </div>
         </header>
         <div className="p-4 lg:p-7">{children}</div>

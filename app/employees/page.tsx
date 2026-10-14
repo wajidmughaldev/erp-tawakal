@@ -1,17 +1,14 @@
 'use client';
 
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
+import {employeesApi} from '@/lib/services';
+import {cardLabel, displayStatus} from '@/lib/contracts';
+import {useResource} from '@/lib/use-resource';
+import {DataState} from '@/components/portal/data-state';
+import {Pagination} from '@/components/portal/pagination';
 import Link from 'next/link';
 import {ChevronDown, Plus, Search} from 'lucide-react';
 import {PortalShell} from '@/components/portal/portal-shell';
-
-const employeeRows = [
-  {name: 'Muhammad Ali', initials: 'MA', role: 'Senior Technician', id: 'EMP-00123', phone: '+92 300 1234567', employment: 'Active', card: 'Expiring Soon', expiry: '14 Oct 2026'},
-  {name: 'Usman Farooq', initials: 'UF', role: 'Operations Lead', id: 'EMP-00128', phone: '+92 301 2345678', employment: 'Transferred', card: 'Active', expiry: '28 Jan 2027'},
-  {name: 'Amina Tariq', initials: 'AT', role: 'HR Officer', id: 'EMP-00135', phone: '+92 302 3456789', employment: 'Active', card: 'Active', expiry: '12 May 2027'},
-  {name: 'Tariq Khan', initials: 'TK', role: 'Electrical Specialist', id: 'EMP-00142', phone: '+92 303 4567890', employment: 'Active', card: 'Expiring Soon', expiry: '18 Oct 2026'},
-  {name: 'Fahad Qureshi', initials: 'FQ', role: 'Safety Inspector', id: 'EMP-00150', phone: '+92 304 5678901', employment: 'Resigned', card: 'Deactivated', expiry: '10 Dec 2026'},
-];
 
 function statusClass(status: string) {
   if (status === 'Active') return 'border-emerald-200 bg-emerald-100 text-emerald-700';
@@ -26,17 +23,9 @@ export default function EmployeesPage() {
   const [cardStatus, setCardStatus] = useState('All');
   const [expiry, setExpiry] = useState('All');
 
-  const filtered = useMemo(() => {
-    return employeeRows.filter((employee) => {
-      const searchText = `${employee.name} ${employee.id} ${employee.phone}`.toLowerCase();
-      return (
-        searchText.includes(query.toLowerCase()) &&
-        (status === 'All' || employee.employment === status) &&
-        (cardStatus === 'All' || employee.card === cardStatus) &&
-        (expiry === 'All' || employee.card === 'Expiring Soon')
-      );
-    });
-  }, [cardStatus, expiry, query, status]);
+  const [page, setPage] = useState(1);
+  const state = useResource(() => employeesApi.list({page, search: query, status: status === 'All' ? undefined : status.toLowerCase(), cardStatus: cardStatus === 'All' ? undefined : cardStatus.toLowerCase().replaceAll(' ', '_'), expiry: expiry === 'All' ? undefined : 'expiring'}), [page, query, status, cardStatus, expiry]);
+  const filtered = (state.data?.data ?? []).map(item => ({...item, initials: item.name.split(' ').map(part => part[0]).slice(0,2).join(''), role: item.designation, employment: displayStatus(item.status), card: item.cards?.[0] ? cardLabel(item.cards[0]) : 'No Card', expiry: item.cards?.[0]?.expiryDate ?? '—'}));
 
   return (
     <PortalShell>
@@ -63,16 +52,17 @@ export default function EmployeesPage() {
                 className="h-9 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-[12px] outline-none focus:border-blue-600"
                 placeholder="Search name, employee ID, phone or NIC"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {setQuery(event.target.value); setPage(1);}}
               />
             </div>
-            <FilterSelect label="Status" value={status} onChange={setStatus} options={['All', 'Active', 'Transferred', 'Resigned']} />
-            <FilterSelect label="ID Card" value={cardStatus} onChange={setCardStatus} options={['All', 'Active', 'Expiring Soon', 'Deactivated']} />
-            <FilterSelect label="Expiry" value={expiry} onChange={setExpiry} options={['All', 'Expiring Soon']} />
+            <FilterSelect label="Status" value={status} onChange={value => {setStatus(value); setPage(1);}} options={['All', 'Active', 'Transferred', 'Resigned']} />
+            <FilterSelect label="ID Card" value={cardStatus} onChange={value => {setCardStatus(value); setPage(1);}} options={['All', 'Active', 'Expiring Soon', 'Deactivated']} />
+            <FilterSelect label="Expiry" value={expiry} onChange={value => {setExpiry(value); setPage(1);}} options={['All', 'Expiring Soon']} />
           </div>
         </section>
 
         <section className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+          <DataState {...state} empty={!state.loading && !filtered.length} retry={state.refetch} />
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead className="bg-slate-50 text-[10px] uppercase tracking-[0.08em] text-slate-500">
@@ -108,10 +98,7 @@ export default function EmployeesPage() {
                     </td>
                     <td className="px-4 py-[13px] text-[12px] text-slate-600">{employee.expiry}</td>
                     <td className="px-4 py-[13px] text-right">
-                      <button className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-500/80 px-2.5 text-[12px] text-slate-700 hover:bg-slate-50" type="button">
-                        Actions
-                        <ChevronDown size={13} />
-                      </button>
+                      <Link href={`/employees/${encodeURIComponent(employee.id)}`} className="inline-flex h-8 items-center rounded-md border border-slate-500/80 px-2.5 text-[12px]">View / Actions</Link>
                     </td>
                   </tr>
                 ))}
@@ -119,16 +106,7 @@ export default function EmployeesPage() {
             </table>
           </div>
 
-          <div className="flex flex-col justify-between gap-3 border-t border-slate-200 px-4 py-4 text-[12px] text-slate-700 sm:flex-row sm:items-center">
-            <span>Showing 1 to {filtered.length} of 12 entries</span>
-            <div className="flex items-center">
-              <button className="h-8 rounded-l-md border border-slate-200 bg-slate-100 px-3">Previous</button>
-              <button className="h-8 border-y border-slate-200 bg-[#123b6d] px-3 text-white">1</button>
-              <button className="h-8 border border-slate-200 px-3">2</button>
-              <button className="h-8 border-y border-slate-200 px-3">3</button>
-              <button className="h-8 rounded-r-md border border-slate-200 px-3">Next</button>
-            </div>
-          </div>
+          <Pagination meta={state.data?.meta} onPage={setPage} />
         </section>
       </div>
     </PortalShell>
