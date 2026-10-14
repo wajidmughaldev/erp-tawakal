@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Employee Management & Smart ID Portal</title>
+  <!-- Bootstrap 5.3 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Latin Google Fonts: Anek Latin & Lato -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wght@300;400;500;600&family=Lato:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand-deep: #123B6D;
+      --brand-dark: #092A4A;
+      --brand-gold: #D4AF37;
+      --bg-page: #F6F8FB;
+      --border-color: #E5E7EB;
+      --text-main: #111827;
+      --text-muted: #6B7280;
+    }
+    body, button, input, select, textarea {
+      font-family: 'Anek Latin', 'Lato', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      min-height: 100vh;
+      margin: 0;
+      font-weight: 400;
+    }
+
+    /* Max 600 bold requirement across entire site */
+    b, strong, th, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6, .fw-bold, .fw-bolder {
+      font-weight: 600 !important;
+    }
+    .auth-container {
+      min-height: 100vh;
+    }
+    .brand-panel {
+      background-color: var(--brand-dark);
+      background-image: linear-gradient(145deg, #092A4A 0%, #123B6D 100%);
+      color: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3.5rem 3rem;
+    }
+    .brand-logo-badge {
+      width: 54px;
+      height: 54px;
+      border-radius: 10px;
+      background-color: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--brand-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    .gold-accent-line {
+      width: 44px;
+      height: 3px;
+      background-color: var(--brand-gold);
+      margin: 1.25rem 0;
+      border-radius: 2px;
+    }
+    .form-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.5rem 1.5rem;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2.5rem 2rem;
+      box-shadow: 0 4px 16px rgba(9, 42, 74, 0.04);
+    }
+    .form-control:focus {
+      border-color: var(--brand-deep);
+      box-shadow: 0 0 0 0.2rem rgba(18, 59, 109, 0.15);
+    }
+    .btn-primary-custom {
+      background-color: var(--brand-deep);
+      border-color: var(--brand-deep);
+      color: #FFFFFF;
+      font-weight: 500;
+      padding: 0.65rem 1rem;
+      transition: background-color 0.15s ease-in-out;
+    }
+    .btn-primary-custom:hover, .btn-primary-custom:focus {
+      background-color: #0c2d54;
+      border-color: #0c2d54;
+      color: #FFFFFF;
+    }
+    .input-group-text-btn {
+      background-color: transparent;
+      border-left: 0;
+      cursor: pointer;
+    }
+    .demo-hint-box {
+      background-color: #F8FAFC;
+      border: 1px dashed var(--border-color);
+      border-radius: 8px;
+      padding: 0.85rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid p-0">
+    <div class="row g-0 auth-container">
+      <!-- Left Brand Column (46% on large desktop) -->
+      <div class="col-lg-5 brand-panel d-none d-lg-flex">
+        <div>
+          <div class="brand-logo-badge">
+            <!-- Inline SVG Logo -->
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+              <circle cx="8" cy="10" r="2"></circle>
+              <path d="M14 8h4"></path>
+              <path d="M14 12h4"></path>
+              <path d="M6 16h12"></path>
+            </svg>
+          </div>
+          <h2 class="h3 fw-bold mb-1 tracking-tight">Enterprise ID Portal</h2>
+          <p class="text-white-50 small mb-0">Employee Management & Smart Identification System</p>
+          <div class="gold-accent-line"></div>
+          <p class="text-light opacity-75 mt-3 mb-0" style="max-width: 380px; font-size: 0.9375rem; line-height: 1.6;">
+            Centralized credential issuance, QR verification, and physical employee identity lifecycle management with operational security standards.
+          </p>
+        </div>
+
+        <div class="pt-4 border-top border-secondary border-opacity-25 small text-white-50">
+          <div>Institutional Security &amp; Access Protocol</div>
+          <div class="mt-1">Version 2.4.0 &middot; Authorized Personnel Only</div>
+        </div>
+      </div>
+
+      <!-- Right Form Column -->
+      <div class="col-lg-7 form-panel">
+        <div class="login-card">
+          <!-- Mobile Branding -->
+          <div class="d-lg-none text-center mb-4">
+            <div class="brand-logo-badge mx-auto">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+                <circle cx="8" cy="10" r="2"></circle>
+                <path d="M14 8h4"></path>
+                <path d="M14 12h4"></path>
+                <path d="M6 16h12"></path>
+              </svg>
+            </div>
+            <h1 class="h4 fw-bold mb-1" style="color: var(--brand-dark)">Enterprise ID Portal</h1>
+            <p class="text-muted small">Employee Management System</p>
+          </div>
+
+          <div class="mb-4">
+            <h1 class="h4 fw-bold mb-1 text-dark">Welcome Back</h1>
+            <p class="text-muted small mb-0">Sign in to access the employee management portal.</p>
+          </div>
+
+          <!-- Invalid Alert -->
+          <div id="loginAlert" class="alert alert-danger py-2 px-3 small d-none" role="alert">
+            <div class="d-flex align-items-center">
+              <svg class="me-2 flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <span id="alertMessage">Invalid login credentials.</span>
+            </div>
+          </div>
+
+          <!-- Success Alert -->
+          <div id="loginSuccess" class="alert alert-success py-2 px-3 small d-none" role="alert">
+            <div class="d-flex align-items-center">
+              <svg class="me-2 flex-shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <span>Authentication verified. Redirecting to dashboard...</span>
+            </div>
+          </div>
+
+          <!-- Form -->
+          <form id="loginForm" novalidate>
+            <div class="mb-3">
+              <label for="usernameInput" class="form-label small fw-semibold text-secondary">Email or Username</label>
+              <input type="text" class="form-control" id="usernameInput" placeholder="admin@example.com" autocomplete="username" required>
+              <div class="invalid-feedback small">Please enter your email or username.</div>
+            </div>
+
+            <div class="mb-3">
+              <label for="passwordInput" class="form-label small fw-semibold text-secondary">Password</label>
+              <div class="input-group">
+                <input type="password" class="form-control" id="passwordInput" placeholder="••••••••" autocomplete="current-password" required>
+                <button class="btn btn-outline-secondary input-group-text-btn" type="button" id="togglePasswordBtn" title="Toggle password visibility">
+                  <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                </button>
+              </div>
+              <div class="invalid-feedback small">Please enter your password.</div>
+            </div>
+
+            <div class="mb-4 d-flex justify-content-between align-items-center">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="rememberMe">
+                <label class="form-check-label small text-secondary" for="rememberMe">
+                  Remember me on this workstation
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary-custom w-100 mb-3" id="submitBtn">
+              <span id="btnSpinner" class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+              <span id="btnText">Sign In</span>
+            </button>
+          </form>
+
+          <div class="demo-hint-box">
+            <div class="fw-semibold text-dark mb-2 d-flex align-items-center justify-content-between">
+              <span>Demo Login Accounts</span>
+              <span class="badge bg-light text-secondary border">Tawakkal Ent.</span>
+            </div>
+            
+            <!-- Admin Account -->
+            <div class="p-2 mb-2 bg-white rounded border d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold text-dark small">Noman (System Admin)</div>
+                <div class="text-muted" style="font-size: 0.75rem;"><code>admin@example.com</code> &bull; <code>password</code></div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2 small" onclick="fillCredentials('admin@example.com', 'password')">Fill</button>
+            </div>
+
+            <!-- Manager Account -->
+            <div class="p-2 bg-white rounded border d-flex justify-content-between align-items-center">
+              <div>
+                <div class="fw-semibold text-dark small">Bilal Tariq (Branch Manager)</div>
+                <div class="text-muted" style="font-size: 0.75rem;"><code>manager@example.com</code> &bull; <code>password123</code></div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 small" onclick="fillCredentials('manager@example.com', 'password123')">Fill</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Central Data Layer -->
+  <script src="portal-data.js"></script>
+
+  <script>
+    function fillCredentials(email, pass) {
+      const usernameInput = document.getElementById('usernameInput');
+      const passwordInput = document.getElementById('passwordInput');
+      if (usernameInput && passwordInput) {
+        usernameInput.value = email;
+        passwordInput.value = pass;
+        usernameInput.classList.remove('is-invalid');
+        passwordInput.classList.remove('is-invalid');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const loginForm = document.getElementById('loginForm');
+      const usernameInput = document.getElementById('usernameInput');
+      const passwordInput = document.getElementById('passwordInput');
+      const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+      const loginAlert = document.getElementById('loginAlert');
+      const alertMessage = document.getElementById('alertMessage');
+      const loginSuccess = document.getElementById('loginSuccess');
+      const submitBtn = document.getElementById('submitBtn');
+      const btnSpinner = document.getElementById('btnSpinner');
+      const btnText = document.getElementById('btnText');
+
+      // Pre-fill demo admin credentials by default
+      usernameInput.value = 'admin@example.com';
+      passwordInput.value = 'password';
+
+      // Password toggle
+      togglePasswordBtn.addEventListener('click', function () {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        this.innerHTML = type === 'password'
+          ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`
+          : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+      });
+
+      // Submit handler
+      loginForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+        loginAlert.classList.add('d-none');
+        loginSuccess.classList.add('d-none');
+
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+
+        let valid = true;
+        if (!username) {
+          usernameInput.classList.add('is-invalid');
+          valid = false;
+        } else {
+          usernameInput.classList.remove('is-invalid');
+        }
+
+        if (!password) {
+          passwordInput.classList.add('is-invalid');
+          valid = false;
+        } else {
+          passwordInput.classList.remove('is-invalid');
+        }
+
+        if (!valid) return;
+
+        // Simulate sign in process
+        submitBtn.disabled = true;
+        btnSpinner.classList.remove('d-none');
+        btnText.textContent = 'Signing in...';
+
+        setTimeout(function () {
+          try {
+            let authResult = null;
+
+            // Check if PortalData layer is loaded
+            if (typeof PortalData !== 'undefined' && typeof PortalData.authenticate === 'function') {
+              authResult = PortalData.authenticate(username, password);
+            } else {
+              // Direct resilient fallback authentication if script was delayed or cached
+              const cleanUser = username.toLowerCase();
+              if ((cleanUser === 'admin@example.com' || cleanUser === 'admin' || cleanUser === 'noman') && password === 'password') {
+                const adminUser = {
+                  id: 'ADM-001',
+                  name: 'Noman',
+                  email: 'admin@example.com',
+                  role: 'System Administrator',
+                  avatarInitials: 'N',
+                  avatarBg: '#123B6D'
+                };
+                localStorage.setItem('portal_auth', JSON.stringify(adminUser));
+                authResult = { success: true, user: adminUser };
+              } else if ((cleanUser === 'manager@example.com' || cleanUser === 'manager' || cleanUser === 'bilal') && (password === 'password123' || password === 'password')) {
+                const managerUser = {
+                  id: 'MGR-001',
+                  name: 'Bilal Tariq',
+                  email: 'manager@example.com',
+                  role: 'Branch Manager',
+                  avatarInitials: 'BT',
+                  avatarBg: '#1E3A8A'
+                };
+                localStorage.setItem('portal_auth', JSON.stringify(managerUser));
+                authResult = { success: true, user: managerUser };
+              } else {
+                authResult = { success: false, message: 'Invalid credentials. Please verify your email and password.' };
+              }
+            }
+
+            if (authResult && authResult.success) {
+              loginSuccess.classList.remove('d-none');
+              const successSpan = loginSuccess.querySelector('span');
+              if (successSpan) {
+                successSpan.textContent = `Authenticated as ${authResult.user.name} (${authResult.user.role}). Redirecting...`;
+              }
+              setTimeout(function () {
+                window.location.href = 'dashboard.html';
+              }, 400);
+            } else {
+              submitBtn.disabled = false;
+              btnSpinner.classList.add('d-none');
+              btnText.textContent = 'Sign In';
+              if (alertMessage) {
+                alertMessage.textContent = (authResult && authResult.message) ? authResult.message : 'Invalid login credentials.';
+              }
+              loginAlert.classList.remove('d-none');
+            }
+          } catch (err) {
+            console.error('Login error:', err);
+            submitBtn.disabled = false;
+            btnSpinner.classList.add('d-none');
+            btnText.textContent = 'Sign In';
+            if (alertMessage) {
+              alertMessage.textContent = 'An error occurred during authentication. Please try again.';
+            }
+            loginAlert.classList.remove('d-none');
+          }
+        }, 350);
+      });
+    });
+  </script>
+</body>
+</html>

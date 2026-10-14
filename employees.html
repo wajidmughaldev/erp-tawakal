@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employees - Employee Management & Smart ID Portal</title>
+  <!-- Bootstrap 5.3 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Latin Google Fonts: Anek Latin & Lato -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wght@300;400;500;600&family=Lato:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand-deep: #123B6D;
+      --brand-dark: #092A4A;
+      --brand-gold: #D4AF37;
+      --bg-page: #F6F8FB;
+      --border-color: #E5E7EB;
+      --text-main: #111827;
+      --text-muted: #6B7280;
+      --sidebar-width: 250px;
+      --header-height: 68px;
+    }
+    body, button, input, select, textarea {
+      font-family: 'Anek Latin', 'Lato', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      margin: 0;
+      overflow-x: hidden;
+      font-weight: 400;
+    }
+
+    /* Max 600 bold requirement across entire site */
+    b, strong, th, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6, .fw-bold, .fw-bolder {
+      font-weight: 600 !important;
+    }
+    .app-sidebar {
+      width: var(--sidebar-width);
+      background-color: var(--brand-dark);
+      color: #FFFFFF;
+      min-height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1020;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .sidebar-brand {
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      padding: 0 1.25rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      background-color: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--brand-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.75rem;
+      flex-shrink: 0;
+    }
+    .sidebar-nav {
+      padding: 1rem 0.75rem;
+      flex-grow: 1;
+    }
+    .nav-section-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.45);
+      padding: 0.5rem 0.75rem 0.25rem;
+      font-weight: 600;
+    }
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      padding: 0.65rem 0.75rem;
+      color: rgba(255, 255, 255, 0.75);
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+      transition: all 0.15s ease;
+    }
+    .sidebar-link:hover {
+      color: #FFFFFF;
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+    .sidebar-link.active {
+      color: #FFFFFF;
+      background-color: var(--brand-deep);
+      border-left: 3px solid var(--brand-gold);
+    }
+    .sidebar-link svg {
+      margin-right: 0.75rem;
+      opacity: 0.85;
+      flex-shrink: 0;
+    }
+    .sidebar-footer {
+      padding: 1rem 0.75rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background-color: rgba(0, 0, 0, 0.15);
+    }
+    .app-main {
+      margin-left: var(--sidebar-width);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (max-width: 991.98px) {
+      .app-sidebar { display: none; }
+      .app-main { margin-left: 0; }
+    }
+    .app-header {
+      height: var(--header-height);
+      background-color: #FFFFFF;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .header-bell-btn {
+      position: relative;
+      background: none;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-main);
+    }
+    .header-bell-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background-color: #DC2626;
+      color: #FFFFFF;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      padding: 0 5px;
+      border-radius: 10px;
+      line-height: 16px;
+    }
+    .admin-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: var(--brand-deep);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .btn-primary-custom {
+      background-color: var(--brand-deep);
+      border-color: var(--brand-deep);
+      color: #FFFFFF;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+    }
+    .btn-primary-custom:hover {
+      background-color: #0c2d54;
+      border-color: #0c2d54;
+      color: #FFFFFF;
+    }
+    .card-box {
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .custom-table th {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--text-muted);
+      font-weight: 600;
+      background-color: #F9FAFB;
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.75rem 1rem;
+    }
+    .custom-table td {
+      padding: 0.85rem 1rem;
+      vertical-align: middle;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.875rem;
+    }
+    .employee-photo-thumb {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background-color: #E2E8F0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      color: var(--brand-deep);
+      border: 1px solid var(--border-color);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .emp-name-link {
+      font-weight: 600;
+      color: var(--text-main);
+      text-decoration: none;
+    }
+    .emp-name-link:hover {
+      color: var(--brand-deep);
+      text-decoration: underline;
+    }
+    .badge-status {
+      font-weight: 500;
+      font-size: 0.75rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 4px;
+    }
+    .pagination .page-link {
+      color: var(--text-main);
+      border-color: var(--border-color);
+      font-size: 0.84rem;
+      padding: 0.375rem 0.75rem;
+    }
+    .pagination .page-item.active .page-link {
+      background-color: var(--brand-deep);
+      border-color: var(--brand-deep);
+      color: #FFFFFF;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Desktop Sidebar -->
+  <aside class="app-sidebar">
+    <div>
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+            <circle cx="8" cy="10" r="2"></circle>
+            <path d="M14 8h4M14 12h4M6 16h12"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="fw-bold text-white small lh-1">SmartID Portal</div>
+          <span class="text-white-50" style="font-size: 0.6875rem;">Enterprise Edition</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Navigation</div>
+        <a href="dashboard.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Dashboard
+        </a>
+        <a href="employees.html" class="sidebar-link active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Employees
+        </a>
+        <a href="employee-requests.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          Employee Requests
+        </a>
+        <a href="id-cards.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <line x1="2" y1="10" x2="22" y2="10"></line>
+          </svg>
+          ID Cards
+        </a>
+        <a href="managers.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Managers
+        </a>
+        <a href="notifications.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          Notifications
+          <span class="badge bg-danger ms-auto small" style="font-size: 0.65rem;">3</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <div class="admin-avatar me-2" style="width: 32px; height: 32px; font-size: 0.75rem;">N</div>
+          <div>
+            <div class="text-white small fw-medium lh-1 current-user-name">Noman</div>
+            <span class="text-white-50 current-user-role" style="font-size: 0.7rem;">System Admin</span>
+          </div>
+        </div>
+        <a href="login.html" class="text-white-50 text-decoration-none" title="Sign out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Mobile Offcanvas -->
+  <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="mobileSidebar" style="background-color: var(--brand-dark) !important; width: 260px;">
+    <div class="offcanvas-header border-bottom border-secondary border-opacity-25" style="height: var(--header-height);">
+      <div class="d-flex align-items-center">
+        <div class="brand-icon me-2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+            <circle cx="8" cy="10" r="2"></circle>
+            <path d="M14 8h4M14 12h4M6 16h12"></path>
+          </svg>
+        </div>
+        <span class="fw-bold text-white">SmartID Portal</span>
+      </div>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-3">
+      <a href="dashboard.html" class="sidebar-link">Dashboard</a>
+      <a href="employees.html" class="sidebar-link active">Employees</a>
+      <a href="employee-requests.html" class="sidebar-link">Employee Requests</a>
+      <a href="id-cards.html" class="sidebar-link">ID Cards</a>
+      <a href="managers.html" class="sidebar-link">Managers</a>
+      <a href="notifications.html" class="sidebar-link">Notifications</a>
+      <hr class="border-secondary my-3">
+      <a href="login.html" class="sidebar-link text-danger">Logout</a>
+    </div>
+  </div>
+
+  <!-- Main Content Wrapper -->
+  <div class="app-main">
+    <header class="app-header">
+      <div class="d-flex align-items-center">
+        <button class="btn btn-outline-secondary d-lg-none me-2 p-1 px-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <h1 class="h5 mb-0 fw-semibold text-dark">Employees</h1>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <div class="dropdown">
+          <button class="header-bell-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span class="header-bell-badge">3</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border" style="width: 300px; font-size: 0.85rem;">
+            <li class="px-3 py-2 fw-bold border-bottom d-flex justify-content-between">
+              <span>Alerts</span>
+              <span class="badge bg-danger rounded-pill">3 New</span>
+            </li>
+            <li><a class="dropdown-item py-2" href="notifications.html"><strong>CARD-00398</strong> expires in 5 days</a></li>
+            <li><a class="dropdown-item py-2" href="notifications.html"><strong>EMP-00128</strong> transferred to Facility B</a></li>
+            <li><a class="dropdown-item py-2" href="notifications.html"><strong>CARD-00405</strong> expired yesterday</a></li>
+            <li class="border-top"><a class="dropdown-item text-center text-primary py-2" href="notifications.html">View All Notifications</a></li>
+          </ul>
+        </div>
+
+        <div class="dropdown">
+          <button class="btn p-0 d-flex align-items-center text-decoration-none dropdown-toggle border-0" type="button" data-bs-toggle="dropdown">
+            <div class="admin-avatar me-2">N</div>
+            <span class="small fw-semibold text-dark d-none d-sm-inline">Noman</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border small">
+            <li class="px-3 py-2 border-bottom">
+              <div class="fw-bold">Noman</div>
+              <div class="text-muted" style="font-size: 0.75rem;">admin@example.com</div>
+            </li>
+            <li><a class="dropdown-item py-2" href="dashboard.html">System Dashboard</a></li>
+            <li><a class="dropdown-item py-2" href="employees.html">Employee Directory</a></li>
+            <li class="border-top"><a class="dropdown-item py-2 text-danger" href="login.html">Sign Out</a></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+
+    <main class="p-3 p-md-4 flex-grow-1">
+      <!-- Title & Action -->
+      <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-3">
+        <div>
+          <h2 class="h4 fw-bold text-dark mb-1">Employees</h2>
+          <p class="text-muted small mb-0">Manage employee information, employment status and ID cards.</p>
+        </div>
+        <a href="add-employee.html" class="btn btn-primary-custom d-inline-flex align-items-center align-self-start align-self-sm-auto">
+          <svg class="me-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Add Employee
+        </a>
+      </div>
+
+      <!-- Filters & Toolbar -->
+      <div class="card-box p-3 mb-4">
+        <div class="row g-2 align-items-center">
+          <div class="col-12 col-md-4 col-xl-4">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-white border-end-0">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </span>
+              <input type="text" class="form-control border-start-0 ps-0" id="searchInput" placeholder="Search name, employee ID, phone or NIC">
+            </div>
+          </div>
+
+          <div class="col-6 col-md-2 col-xl-2">
+            <select class="form-select form-select-sm" id="statusFilter" aria-label="Employment Status">
+              <option value="All">Status: All</option>
+              <option value="Active">Active</option>
+              <option value="Transferred">Transferred</option>
+              <option value="Resigned">Resigned</option>
+              <option value="Suspended">Suspended</option>
+              <option value="Terminated">Terminated</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div class="col-6 col-md-2 col-xl-2">
+            <select class="form-select form-select-sm" id="cardStatusFilter" aria-label="ID Card Status">
+              <option value="All">ID Card: All</option>
+              <option value="Active">Active</option>
+              <option value="Expiring Soon">Expiring Soon</option>
+              <option value="Expired">Expired</option>
+              <option value="Not Generated">Not Generated</option>
+              <option value="Deactivated">Deactivated</option>
+            </select>
+          </div>
+
+          <div class="col-6 col-md-2 col-xl-2">
+            <select class="form-select form-select-sm" id="expiryFilter" aria-label="Expiry Filter">
+              <option value="All">Expiry: All</option>
+              <option value="30">Within 30 Days</option>
+              <option value="15">Within 15 Days</option>
+              <option value="7">Within 7 Days</option>
+              <option value="Expired">Expired</option>
+            </select>
+          </div>
+
+          <div class="col-6 col-md-2 col-xl-2 text-end">
+            <button class="btn btn-sm btn-outline-secondary w-100 d-none" id="clearFiltersBtn" onclick="clearAllFilters()">
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Employees Table Card -->
+      <div class="card-box">
+        <div class="table-responsive">
+          <table class="table custom-table mb-0 align-middle">
+            <thead>
+              <tr>
+                <th>Employee</th>
+                <th>Employee ID</th>
+                <th>Phone</th>
+                <th>Employment Status</th>
+                <th>ID Card Status</th>
+                <th>ID Expiry</th>
+                <th class="text-end">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="employeeTableBody">
+              <!-- Rendered by JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Filtered Empty State -->
+        <div id="emptyState" class="text-center py-5 d-none">
+          <svg class="mb-3 text-muted" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            <line x1="8" y1="11" x2="14" y2="11"></line>
+          </svg>
+          <h4 class="h6 fw-bold text-dark">No matching employees</h4>
+          <p class="text-muted small mb-3">Try adjusting or clearing your filters to find who you're looking for.</p>
+          <button class="btn btn-sm btn-outline-primary" onclick="clearAllFilters()">Reset Filters</button>
+        </div>
+
+        <!-- Table Footer / Pagination -->
+        <div class="card-box-footer p-3 border-top d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2" id="paginationWrapper">
+          <div class="small text-muted" id="resultsCount">Showing 1 to 5 of 12 entries</div>
+          <nav aria-label="Employee list pagination">
+            <ul class="pagination pagination-sm mb-0" id="paginationControls">
+              <!-- Rendered by JS -->
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Resign Confirmation Modal -->
+  <div class="modal fade" id="resignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title h6 fw-bold text-danger">Process Employee Resignation</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-3">
+          <p class="small text-muted mb-3">
+            You are processing resignation for <strong id="resignEmpName" class="text-dark"></strong> (<span id="resignEmpId"></span>).
+          </p>
+          <div class="alert alert-warning py-2 px-3 small mb-0">
+            <strong>Warning:</strong> Employment status will change to <strong>Resigned</strong> and any active Smart ID and QR code credentials will be immediately deactivated.
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm btn-danger" id="confirmResignBtn">Confirm Resignation</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Portal Data Store -->
+  <script src="portal-data.js"></script>
+
+  <script>
+    // 12 Mock Employees with mixed statuses
+    const mockEmployees = [
+      {
+        id: "EMP-00123",
+        name: "Muhammad Ali",
+        initials: "MA",
+        designation: "Senior Technician",
+        phone: "+92 300 1234567",
+        nic: "42101-1234567-1",
+        status: "Active",
+        cardStatus: "Expiring Soon",
+        cardExpiry: "14 Oct 2026",
+        daysToExpiry: 5,
+        cardNumber: "CARD-00398"
+      },
+      {
+        id: "EMP-00128",
+        name: "Usman Farooq",
+        initials: "UF",
+        designation: "Operations Lead",
+        phone: "+92 301 2345678",
+        nic: "42101-2345678-3",
+        status: "Transferred",
+        cardStatus: "Active",
+        cardExpiry: "28 Jan 2027",
+        daysToExpiry: 135,
+        cardNumber: "CARD-00412"
+      },
+      {
+        id: "EMP-00135",
+        name: "Amina Tariq",
+        initials: "AT",
+        designation: "HR Officer",
+        phone: "+92 302 3456789",
+        nic: "42101-3456789-5",
+        status: "Active",
+        cardStatus: "Active",
+        cardExpiry: "12 May 2027",
+        daysToExpiry: 240,
+        cardNumber: "CARD-00418"
+      },
+      {
+        id: "EMP-00142",
+        name: "Tariq Khan",
+        initials: "TK",
+        designation: "Electrical Specialist",
+        phone: "+92 303 4567890",
+        nic: "42101-4567890-7",
+        status: "Active",
+        cardStatus: "Expiring Soon",
+        cardExpiry: "18 Oct 2026",
+        daysToExpiry: 9,
+        cardNumber: "CARD-00401"
+      },
+      {
+        id: "EMP-00150",
+        name: "Fahad Qureshi",
+        initials: "FQ",
+        designation: "Safety Inspector",
+        phone: "+92 304 5678901",
+        nic: "42101-5678901-9",
+        status: "Resigned",
+        cardStatus: "Deactivated",
+        cardExpiry: "10 Dec 2026",
+        daysToExpiry: 62,
+        cardNumber: "CARD-00375"
+      },
+      {
+        id: "EMP-00155",
+        name: "Sara Ahmed",
+        initials: "SA",
+        designation: "Quality Control",
+        phone: "+92 305 6789012",
+        nic: "42101-6789012-1",
+        status: "Active",
+        cardStatus: "Expiring Soon",
+        cardExpiry: "21 Oct 2026",
+        daysToExpiry: 12,
+        cardNumber: "CARD-00403"
+      },
+      {
+        id: "EMP-00169",
+        name: "Bilal Raza",
+        initials: "BR",
+        designation: "Field Engineer",
+        phone: "+92 306 7890123",
+        nic: "42101-7890123-3",
+        status: "Active",
+        cardStatus: "Expiring Soon",
+        cardExpiry: "25 Oct 2026",
+        daysToExpiry: 16,
+        cardNumber: "CARD-00407"
+      },
+      {
+        id: "EMP-00174",
+        name: "Kashif Mehmood",
+        initials: "KM",
+        designation: "Logistics Assistant",
+        phone: "+92 307 8901234",
+        nic: "42101-8901234-5",
+        status: "Suspended",
+        cardStatus: "Deactivated",
+        cardExpiry: "05 Nov 2026",
+        daysToExpiry: 27,
+        cardNumber: "CARD-00392"
+      },
+      {
+        id: "EMP-00188",
+        name: "Zainab Malik",
+        initials: "ZM",
+        designation: "Procurement Executive",
+        phone: "+92 308 9012345",
+        nic: "42101-9012345-7",
+        status: "Active",
+        cardStatus: "Expiring Soon",
+        cardExpiry: "29 Oct 2026",
+        daysToExpiry: 20,
+        cardNumber: "CARD-00410"
+      },
+      {
+        id: "EMP-00195",
+        name: "Hamza Sheikh",
+        initials: "HS",
+        designation: "Apprentice",
+        phone: "+92 309 0123456",
+        nic: "42101-0123456-9",
+        status: "Active",
+        cardStatus: "Not Generated",
+        cardExpiry: "—",
+        daysToExpiry: 999,
+        cardNumber: null
+      },
+      {
+        id: "EMP-00201",
+        name: "Nida Siddiqui",
+        initials: "NS",
+        designation: "Administrative Assistant",
+        phone: "+92 310 1234567",
+        nic: "42101-1122334-1",
+        status: "Active",
+        cardStatus: "Expired",
+        cardExpiry: "12 Sep 2026",
+        daysToExpiry: -4,
+        cardNumber: "CARD-00360"
+      },
+      {
+        id: "EMP-00215",
+        name: "Rashid Ali",
+        initials: "RA",
+        designation: "Maintenance Crew",
+        phone: "+92 311 2345678",
+        nic: "42101-2233445-3",
+        status: "Terminated",
+        cardStatus: "Deactivated",
+        cardExpiry: "18 Aug 2026",
+        daysToExpiry: -29,
+        cardNumber: "CARD-00342"
+      }
+    ];
+
+    let currentPage = 1;
+    const pageSize = 5;
+    let pendingResignEmp = null;
+
+    function getEmploymentBadge(status) {
+      switch (status) {
+        case 'Active': return '<span class="badge badge-status bg-success-subtle text-success border border-success-subtle">Active</span>';
+        case 'Transferred': return '<span class="badge badge-status bg-info-subtle text-info-emphasis border border-info-subtle">Transferred</span>';
+        case 'Resigned': return '<span class="badge badge-status bg-secondary-subtle text-secondary border border-secondary-subtle">Resigned</span>';
+        case 'Suspended': return '<span class="badge badge-status bg-warning-subtle text-warning-emphasis border border-warning-subtle">Suspended</span>';
+        case 'Terminated': return '<span class="badge badge-status bg-danger-subtle text-danger border border-danger-subtle">Terminated</span>';
+        case 'Inactive': return '<span class="badge badge-status bg-light text-muted border">Inactive</span>';
+        default: return `<span class="badge badge-status bg-light text-dark">${status}</span>`;
+      }
+    }
+
+    function getCardStatusBadge(status) {
+      switch (status) {
+        case 'Active': return '<span class="badge badge-status bg-success-subtle text-success">Active</span>';
+        case 'Expiring Soon': return '<span class="badge badge-status bg-warning-subtle text-warning-emphasis">Expiring Soon</span>';
+        case 'Expired': return '<span class="badge badge-status bg-danger-subtle text-danger">Expired</span>';
+        case 'Not Generated': return '<span class="badge badge-status bg-light text-muted border">Not Generated</span>';
+        case 'Deactivated': return '<span class="badge badge-status bg-secondary-subtle text-secondary">Deactivated</span>';
+        default: return `<span class="badge badge-status bg-light text-dark">${status}</span>`;
+      }
+    }
+
+    function getAllEmployees() {
+      const portalEmps = (typeof PortalData !== 'undefined') ? PortalData.getEmployees() : [];
+      const mappedPortal = portalEmps.map(p => ({
+        id: p.id,
+        name: p.name,
+        nameUrdu: p.nameUrdu || '',
+        initials: p.name ? p.name.split(' ').map(n => n[0]).join('').substring(0, 2) : 'EM',
+        designation: p.designation || 'Staff',
+        phone: p.phone || '',
+        nic: p.nic || p.cnic || '',
+        status: p.status || 'Active',
+        cardStatus: p.cardStatus || 'Not Generated',
+        cardExpiry: p.cardExpiry || '16 Aug 2027',
+        daysToExpiry: 334,
+        cardNumber: p.cardNumber || '',
+        photo: p.photo
+      }));
+      const existingIds = new Set(mappedPortal.map(e => e.id));
+      const rest = mockEmployees.filter(m => !existingIds.has(m.id));
+      return [...mappedPortal, ...rest];
+    }
+
+    function filterEmployees() {
+      const search = document.getElementById('searchInput').value.toLowerCase().trim();
+      const status = document.getElementById('statusFilter').value;
+      const cardStatus = document.getElementById('cardStatusFilter').value;
+      const expiry = document.getElementById('expiryFilter').value;
+
+      const hasFilter = search !== '' || status !== 'All' || cardStatus !== 'All' || expiry !== 'All';
+      document.getElementById('clearFiltersBtn').classList.toggle('d-none', !hasFilter);
+
+      return getAllEmployees().filter(emp => {
+        // Search match
+        const matchesSearch = !search ||
+          emp.name.toLowerCase().includes(search) ||
+          emp.id.toLowerCase().includes(search) ||
+          emp.phone.toLowerCase().includes(search) ||
+          emp.nic.toLowerCase().includes(search);
+
+        // Status match
+        const matchesStatus = status === 'All' || emp.status === status;
+
+        // Card status match
+        const matchesCardStatus = cardStatus === 'All' || emp.cardStatus === cardStatus;
+
+        // Expiry match
+        let matchesExpiry = true;
+        if (expiry === '30') {
+          matchesExpiry = emp.daysToExpiry > 0 && emp.daysToExpiry <= 30;
+        } else if (expiry === '15') {
+          matchesExpiry = emp.daysToExpiry > 0 && emp.daysToExpiry <= 15;
+        } else if (expiry === '7') {
+          matchesExpiry = emp.daysToExpiry > 0 && emp.daysToExpiry <= 7;
+        } else if (expiry === 'Expired') {
+          matchesExpiry = emp.daysToExpiry <= 0 && emp.cardStatus === 'Expired';
+        }
+
+        return matchesSearch && matchesStatus && matchesCardStatus && matchesExpiry;
+      });
+    }
+
+    function renderTable() {
+      const filtered = filterEmployees();
+      const total = filtered.length;
+      const totalPages = Math.ceil(total / pageSize) || 1;
+
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIndex = (currentPage - 1) * pageSize;
+      const paged = filtered.slice(startIndex, startIndex + pageSize);
+
+      const tbody = document.getElementById('employeeTableBody');
+      const emptyState = document.getElementById('emptyState');
+      const paginationWrapper = document.getElementById('paginationWrapper');
+
+      if (total === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('d-none');
+        paginationWrapper.classList.add('d-none');
+        return;
+      }
+
+      emptyState.classList.add('d-none');
+      paginationWrapper.classList.remove('d-none');
+
+      document.getElementById('resultsCount').textContent =
+        `Showing ${startIndex + 1} to ${Math.min(startIndex + pageSize, total)} of ${total} entries`;
+
+      tbody.innerHTML = paged.map(emp => {
+        const canResign = emp.status === 'Active';
+        const cardActionHtml = emp.cardNumber
+          ? `<li><a class="dropdown-item py-1 text-primary" href="id-card-detail.html?card=${emp.cardNumber}">View ID Card</a></li>`
+          : `<li><a class="dropdown-item py-1 text-primary" href="generate-id-card.html?id=${emp.id}">Generate ID Card</a></li>`;
+
+        return `
+          <tr>
+            <td>
+              <div class="d-flex align-items-center">
+                <div class="employee-photo-thumb me-2 overflow-hidden" onclick="window.location.href='employee-detail.html?id=${emp.id}'">
+                  ${emp.photo ? `<img src="${emp.photo}" style="width:100%;height:100%;object-fit:cover;">` : emp.initials}
+                </div>
+                <div>
+                  <a href="employee-detail.html?id=${emp.id}" class="emp-name-link">${emp.name}</a>
+                  <div class="text-muted" style="font-size: 0.75rem;">${emp.designation}</div>
+                </div>
+              </div>
+            </td>
+            <td><code>${emp.id}</code></td>
+            <td class="text-secondary">${emp.phone}</td>
+            <td>${getEmploymentBadge(emp.status)}</td>
+            <td>${getCardStatusBadge(emp.cardStatus)}</td>
+            <td class="small text-secondary">${emp.cardExpiry}</td>
+            <td class="text-end">
+              <div class="dropdown">
+                <button class="btn btn-sm btn-outline-secondary py-1 px-2 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Actions
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm small border">
+                  <li><a class="dropdown-item py-1" href="employee-detail.html?id=${emp.id}">View Profile</a></li>
+                  <li><a class="dropdown-item py-1" href="edit-employee.html?id=${emp.id}">Edit Employee</a></li>
+                  ${cardActionHtml}
+                  <li><a class="dropdown-item py-1" href="employee-detail.html?id=${emp.id}&action=employment">Employment Action</a></li>
+                  ${canResign ? `
+                    <li><hr class="dropdown-divider my-1"></li>
+                    <li><button class="dropdown-item py-1 text-danger" onclick="openResignModal('${emp.id}', '${emp.name}')">Mark as Resigned</button></li>
+                  ` : ''}
+                </ul>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      renderPagination(totalPages);
+    }
+
+    function renderPagination(totalPages) {
+      const controls = document.getElementById('paginationControls');
+      let html = '';
+
+      // Previous
+      html += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>
+        </li>
+      `;
+
+      // Numbers
+      for (let i = 1; i <= totalPages; i++) {
+        html += `
+          <li class="page-item ${currentPage === i ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>
+          </li>
+        `;
+      }
+
+      // Next
+      html += `
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>
+        </li>
+      `;
+
+      controls.innerHTML = html;
+    }
+
+    function changePage(page) {
+      currentPage = page;
+      renderTable();
+    }
+
+    function clearAllFilters() {
+      document.getElementById('searchInput').value = '';
+      document.getElementById('statusFilter').value = 'All';
+      document.getElementById('cardStatusFilter').value = 'All';
+      document.getElementById('expiryFilter').value = 'All';
+      currentPage = 1;
+      renderTable();
+    }
+
+    function openResignModal(empId, empName) {
+      pendingResignEmp = empId;
+      document.getElementById('resignEmpName').textContent = empName;
+      document.getElementById('resignEmpId').textContent = empId;
+      const modal = new bootstrap.Modal(document.getElementById('resignModal'));
+      modal.show();
+    }
+
+    document.getElementById('confirmResignBtn').addEventListener('click', function () {
+      if (pendingResignEmp) {
+        const emp = mockEmployees.find(e => e.id === pendingResignEmp);
+        if (emp) {
+          emp.status = 'Resigned';
+          emp.cardStatus = 'Deactivated';
+        }
+        bootstrap.Modal.getInstance(document.getElementById('resignModal')).hide();
+        renderTable();
+      }
+    });
+
+    document.getElementById('searchInput').addEventListener('input', () => { currentPage = 1; renderTable(); });
+    document.getElementById('statusFilter').addEventListener('change', () => { currentPage = 1; renderTable(); });
+    document.getElementById('cardStatusFilter').addEventListener('change', () => { currentPage = 1; renderTable(); });
+    document.getElementById('expiryFilter').addEventListener('change', () => { currentPage = 1; renderTable(); });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const statusParam = params.get('status');
+      if (statusParam) {
+        const select = document.getElementById('statusFilter');
+        for (let opt of select.options) {
+          if (opt.value.toLowerCase() === statusParam.toLowerCase()) {
+            select.value = opt.value;
+            break;
+          }
+        }
+      }
+      const cardStatusParam = params.get('cardStatus');
+      if (cardStatusParam) {
+        const select = document.getElementById('cardStatusFilter');
+        for (let opt of select.options) {
+          if (opt.value.toLowerCase() === cardStatusParam.toLowerCase()) {
+            select.value = opt.value;
+            break;
+          }
+        }
+      }
+      renderTable();
+    });
+  </script>
+</body>
+</html>

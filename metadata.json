@@ -1,0 +1,6 @@
+{
+  "name": "Employee Management & Smart ID Portal",
+  "description": "Corporate employee management and smart ID portal with employee directory, ID card generation, renewal, and QR verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

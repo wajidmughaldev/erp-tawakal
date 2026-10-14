@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+:root {
+  --brand-deep: #123b6d;
+  --brand-dark: #092a4a;
+  --brand-gold: #d4af37;
+  --bg-page: #f6f8fb;
+  --border-color: #e5e7eb;
+  --text-main: #111827;
+  --text-muted: #6b7280;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  font-family: 'Anek Latin', 'Lato', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-page);
+  color: var(--text-main);
+  font-weight: 400;
+}
+
+b,
+strong,
+th,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

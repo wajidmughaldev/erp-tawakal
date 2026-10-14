@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications - Smart ID Portal</title>
+  <!-- Bootstrap 5.3 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Latin Google Fonts: Anek Latin & Lato -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wght@300;400;500;600&family=Lato:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand-deep: #123B6D;
+      --brand-dark: #092A4A;
+      --brand-gold: #D4AF37;
+      --bg-page: #F6F8FB;
+      --border-color: #E5E7EB;
+      --text-main: #111827;
+      --text-muted: #6B7280;
+      --sidebar-width: 250px;
+      --header-height: 68px;
+    }
+    body, button, input, select, textarea {
+      font-family: 'Anek Latin', 'Lato', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      margin: 0;
+      overflow-x: hidden;
+      font-weight: 400;
+    }
+
+    /* Max 600 bold requirement across entire site */
+    b, strong, th, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6, .fw-bold, .fw-bolder {
+      font-weight: 600 !important;
+    }
+    .app-sidebar {
+      width: var(--sidebar-width);
+      background-color: var(--brand-dark);
+      color: #FFFFFF;
+      min-height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1020;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .sidebar-brand {
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      padding: 0 1.25rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      background-color: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--brand-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.75rem;
+      flex-shrink: 0;
+    }
+    .sidebar-nav {
+      padding: 1rem 0.75rem;
+      flex-grow: 1;
+    }
+    .nav-section-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.45);
+      padding: 0.5rem 0.75rem 0.25rem;
+      font-weight: 600;
+    }
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      padding: 0.65rem 0.75rem;
+      color: rgba(255, 255, 255, 0.75);
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+      transition: all 0.15s ease;
+    }
+    .sidebar-link:hover {
+      color: #FFFFFF;
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+    .sidebar-link.active {
+      color: #FFFFFF;
+      background-color: var(--brand-deep);
+      border-left: 3px solid var(--brand-gold);
+    }
+    .sidebar-link svg {
+      margin-right: 0.75rem;
+      opacity: 0.85;
+      flex-shrink: 0;
+    }
+    .sidebar-footer {
+      padding: 1rem 0.75rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background-color: rgba(0, 0, 0, 0.15);
+    }
+    .app-main {
+      margin-left: var(--sidebar-width);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (max-width: 991.98px) {
+      .app-sidebar { display: none; }
+      .app-main { margin-left: 0; }
+    }
+    .app-header {
+      height: var(--header-height);
+      background-color: #FFFFFF;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .admin-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: var(--brand-deep);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .card-box {
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .notification-item {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      transition: background-color 0.15s ease;
+    }
+    .notification-item:last-child {
+      border-bottom: none;
+    }
+    .notification-item.unread {
+      background-color: #F8FAFC;
+    }
+    .notification-item:hover {
+      background-color: #F1F5F9;
+    }
+    .notif-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .notif-icon.warning {
+      background-color: #FEF3C7;
+      color: #D97706;
+    }
+    .notif-icon.danger {
+      background-color: #FEE2E2;
+      color: #DC2626;
+    }
+    .notif-icon.info {
+      background-color: #E0E7FF;
+      color: #4F46E5;
+    }
+    .notif-icon.success {
+      background-color: #D1FAE5;
+      color: #059669;
+    }
+    .unread-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #2563EB;
+      display: inline-block;
+      margin-left: 0.35rem;
+    }
+    .nav-tabs .nav-link {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-weight: 500;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 0.65rem 1rem;
+    }
+    .nav-tabs .nav-link.active {
+      color: var(--brand-deep);
+      border-bottom-color: var(--brand-deep);
+      background: transparent;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Desktop Sidebar -->
+  <aside class="app-sidebar">
+    <div>
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+            <circle cx="8" cy="10" r="2"></circle>
+            <path d="M14 8h4M14 12h4M6 16h12"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="fw-bold text-white small lh-1">SmartID Portal</div>
+          <span class="text-white-50" style="font-size: 0.6875rem;">Enterprise Edition</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Navigation</div>
+        <a href="dashboard.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Dashboard
+        </a>
+        <a href="employees.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Employees
+        </a>
+        <a href="employee-requests.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          Employee Requests
+        </a>
+        <a href="id-cards.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <line x1="2" y1="10" x2="22" y2="10"></line>
+          </svg>
+          ID Cards
+        </a>
+        <a href="managers.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Managers
+        </a>
+        <a href="notifications.html" class="sidebar-link active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          Notifications
+          <span class="badge bg-danger ms-auto small" id="sidebarBadge" style="font-size: 0.65rem;">3</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <div class="admin-avatar me-2" style="width: 32px; height: 32px; font-size: 0.75rem;">N</div>
+          <div>
+            <div class="text-white small fw-medium lh-1 current-user-name">Noman</div>
+            <span class="text-white-50 current-user-role" style="font-size: 0.7rem;">System Admin</span>
+          </div>
+        </div>
+        <a href="login.html" class="text-white-50" title="Sign out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Mobile Offcanvas -->
+  <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="mobileSidebar" style="background-color: var(--brand-dark) !important; width: 260px;">
+    <div class="offcanvas-header border-bottom border-secondary border-opacity-25" style="height: var(--header-height);">
+      <div class="d-flex align-items-center">
+        <div class="brand-icon me-2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+            <circle cx="8" cy="10" r="2"></circle>
+            <path d="M14 8h4M14 12h4M6 16h12"></path>
+          </svg>
+        </div>
+        <span class="fw-bold text-white">SmartID Portal</span>
+      </div>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-3">
+      <a href="dashboard.html" class="sidebar-link">Dashboard</a>
+      <a href="employees.html" class="sidebar-link">Employees</a>
+      <a href="employee-requests.html" class="sidebar-link">Employee Requests</a>
+      <a href="id-cards.html" class="sidebar-link">ID Cards</a>
+      <a href="managers.html" class="sidebar-link">Managers</a>
+      <a href="notifications.html" class="sidebar-link active">Notifications</a>
+      <hr class="border-secondary my-3">
+      <a href="login.html" class="sidebar-link text-danger">Logout</a>
+    </div>
+  </div>
+
+  <!-- Main Content Wrapper -->
+  <div class="app-main">
+    <header class="app-header">
+      <div class="d-flex align-items-center">
+        <button class="btn btn-outline-secondary d-lg-none me-2 p-1 px-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <h1 class="h5 mb-0 fw-semibold text-dark">Notifications</h1>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="markAllAsRead()">
+          Mark All as Read
+        </button>
+      </div>
+    </header>
+
+    <main class="p-3 p-md-4 flex-grow-1">
+      <div class="container-fluid" style="max-width: 1000px;">
+        <!-- Title & Subtitle -->
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-2">
+          <div>
+            <h2 class="h4 fw-bold text-dark mb-1">System Alerts &amp; Notifications</h2>
+            <p class="text-muted small mb-0">Expiry alerts, renewal requests, and card lifecycle activity notices.</p>
+          </div>
+          <button class="btn btn-sm btn-link text-decoration-none text-muted p-0" onclick="clearAllNotifications()">
+            Clear Read Notifications
+          </button>
+        </div>
+
+        <!-- Filter Tabs -->
+        <div class="card-box mb-4">
+          <ul class="nav nav-tabs px-3 pt-2 border-bottom" id="notifTabs">
+            <li class="nav-link active" onclick="filterTab('all', this)" style="cursor: pointer;">All (<span id="countAll">14</span>)</li>
+            <li class="nav-link" onclick="filterTab('unread', this)" style="cursor: pointer;">Unread (<span id="countUnread">3</span>)</li>
+            <li class="nav-link" onclick="filterTab('expiring', this)" style="cursor: pointer;">Expiring Soon (<span id="countExpiring">8</span>)</li>
+            <li class="nav-link" onclick="filterTab('expired', this)" style="cursor: pointer;">Expired (<span id="countExpired">4</span>)</li>
+            <li class="nav-link" onclick="filterTab('activity', this)" style="cursor: pointer;">Card Activity (<span id="countActivity">2</span>)</li>
+          </ul>
+
+          <div id="notificationList">
+            <!-- Rendered by JS -->
+          </div>
+
+          <!-- Empty state -->
+          <div id="emptyNotifState" class="text-center py-5 d-none">
+            <svg class="mb-3 text-muted" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <h4 class="h6 fw-bold text-dark">No notifications in this category</h4>
+            <p class="text-muted small mb-0">You're all caught up with your smart ID credential alerts.</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Portal Data Store -->
+  <script src="portal-data.js"></script>
+
+  <script>
+    let notifications = [
+      {
+        id: 1,
+        type: 'expiring',
+        unread: true,
+        title: 'ID Card Expiring in 5 Days - Muhammad Ali',
+        card: 'CARD-00398',
+        empId: 'EMP-00123',
+        desc: 'Card validity terminates on 14 Oct 2026. Action required to avoid access gate disruptions.',
+        time: '12 minutes ago',
+        actionLabel: 'Renew Now',
+        actionHref: 'renew-card.html?card=CARD-00398',
+        iconType: 'warning'
+      },
+      {
+        id: 2,
+        type: 'expired',
+        unread: true,
+        title: 'ID Card Expired - Nida Siddiqui',
+        card: 'CARD-00360',
+        empId: 'EMP-00201',
+        desc: 'Card expired 4 days ago on 12 Sep 2026. QR verification status is now inactive.',
+        time: '45 minutes ago',
+        actionLabel: 'Renew Card',
+        actionHref: 'renew-card.html?card=CARD-00360',
+        iconType: 'danger'
+      },
+      {
+        id: 3,
+        type: 'activity',
+        unread: true,
+        title: 'Replacement Card Reissued - Muhammad Ali',
+        card: 'CARD-00422',
+        empId: 'EMP-00123',
+        desc: 'Previous card CARD-00421 was permanently deactivated. New card CARD-00422 registered.',
+        time: '2 hours ago',
+        actionLabel: 'View Card',
+        actionHref: 'id-card-detail.html?card=CARD-00422',
+        iconType: 'info'
+      },
+      {
+        id: 4,
+        type: 'expiring',
+        unread: false,
+        title: 'ID Card Expiring in 9 Days - Tariq Khan',
+        card: 'CARD-00401',
+        empId: 'EMP-00142',
+        desc: 'Expiry on 18 Oct 2026. Review profile to extend validity for 11 months.',
+        time: '3 hours ago',
+        actionLabel: 'Renew Now',
+        actionHref: 'renew-card.html?card=CARD-00401',
+        iconType: 'warning'
+      },
+      {
+        id: 5,
+        type: 'expiring',
+        unread: false,
+        title: 'ID Card Expiring in 12 Days - Sara Ahmed',
+        card: 'CARD-00403',
+        empId: 'EMP-00155',
+        desc: 'Card validity ends on 21 Oct 2026.',
+        time: '5 hours ago',
+        actionLabel: 'Renew Now',
+        actionHref: 'renew-card.html?card=CARD-00403',
+        iconType: 'warning'
+      },
+      {
+        id: 6,
+        type: 'expired',
+        unread: false,
+        title: 'ID Card Expired - Farhan Siddique',
+        card: 'CARD-00342',
+        empId: 'EMP-00195',
+        desc: 'Expired 14 days ago. Security badge reader access blocked.',
+        time: '1 day ago',
+        actionLabel: 'View Employee',
+        actionHref: 'employee-detail.html?id=EMP-00195',
+        iconType: 'danger'
+      },
+      {
+        id: 7,
+        type: 'activity',
+        unread: false,
+        title: 'New Smart ID Card Issued - Usman Farooq',
+        card: 'CARD-00412',
+        empId: 'EMP-00128',
+        desc: 'Card issued with 11 months validity. Digital QR verification enabled.',
+        time: '2 days ago',
+        actionLabel: 'View Card',
+        actionHref: 'id-card-detail.html?card=CARD-00412',
+        iconType: 'success'
+      },
+      {
+        id: 8,
+        type: 'expiring',
+        unread: false,
+        title: 'ID Card Expiring in 16 Days - Bilal Raza',
+        card: 'CARD-00407',
+        empId: 'EMP-00169',
+        desc: 'Card expires on 25 Oct 2026.',
+        time: '2 days ago',
+        actionLabel: 'Renew Now',
+        actionHref: 'renew-card.html?card=CARD-00407',
+        iconType: 'warning'
+      },
+      {
+        id: 9,
+        type: 'expiring',
+        unread: false,
+        title: 'ID Card Expiring in 20 Days - Zainab Malik',
+        card: 'CARD-00410',
+        empId: 'EMP-00188',
+        desc: 'Card expires on 29 Oct 2026.',
+        time: '3 days ago',
+        actionLabel: 'Renew Now',
+        actionHref: 'renew-card.html?card=CARD-00410',
+        iconType: 'warning'
+      },
+      {
+        id: 10,
+        type: 'expired',
+        unread: false,
+        title: 'ID Card Expired - Babar Azam',
+        card: 'CARD-00331',
+        empId: 'EMP-00210',
+        desc: 'Expired 22 days ago. Please coordinate with HR.',
+        time: '4 days ago',
+        actionLabel: 'View Employee',
+        actionHref: 'employee-detail.html?id=EMP-00210',
+        iconType: 'danger'
+      },
+      {
+        id: 11,
+        type: 'expired',
+        unread: false,
+        title: 'ID Card Expired - Asif Ali',
+        card: 'CARD-00325',
+        empId: 'EMP-00215',
+        desc: 'Expired 30 days ago.',
+        time: '5 days ago',
+        actionLabel: 'Renew Card',
+        actionHref: 'renew-card.html?card=CARD-00325',
+        iconType: 'danger'
+      },
+      {
+        id: 12,
+        type: 'expiring',
+        unread: false,
+        title: 'ID Card Expiring in 23 Days - Kamran Akmal',
+        card: 'CARD-00415',
+        empId: 'EMP-00220',
+        desc: 'Card expires on 02 Nov 2026.',
+        time: '6 days ago',
+        actionLabel: 'Renew Now',
+        actionHref: 'renew-card.html?card=CARD-00415',
+        iconType: 'warning'
+      },
+      {
+        id: 13,
+        type: 'expiring',
+        unread: false,
+        title: 'ID Card Expiring in 25 Days - Shadab Khan',
+        card: 'CARD-00416',
+        empId: 'EMP-00225',
+        desc: 'Card expires on 04 Nov 2026.',
+        time: '1 week ago',
+        actionLabel: 'Renew Now',
+        actionHref: 'renew-card.html?card=CARD-00416',
+        iconType: 'warning'
+      },
+      {
+        id: 14,
+        type: 'expiring',
+        unread: false,
+        title: 'ID Card Expiring in 28 Days - Haris Rauf',
+        card: 'CARD-00417',
+        empId: 'EMP-00230',
+        desc: 'Card expires on 07 Nov 2026.',
+        time: '1 week ago',
+        actionLabel: 'Renew Now',
+        actionHref: 'renew-card.html?card=CARD-00417',
+        iconType: 'warning'
+      }
+    ];
+
+    let currentFilter = 'all';
+
+    function getIcon(type) {
+      if (type === 'warning') {
+        return `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+        `;
+      } else if (type === 'danger') {
+        return `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="15" y1="9" x2="9" y2="15"></line>
+            <line x1="9" y1="9" x2="15" y2="15"></line>
+          </svg>
+        `;
+      } else if (type === 'info') {
+        return `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        `;
+      } else {
+        return `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        `;
+      }
+    }
+
+    function updateCounts() {
+      document.getElementById('countAll').textContent = notifications.length;
+      const unreadCount = notifications.filter(n => n.unread).length;
+      document.getElementById('countUnread').textContent = unreadCount;
+      document.getElementById('countExpiring').textContent = notifications.filter(n => n.type === 'expiring').length;
+      document.getElementById('countExpired').textContent = notifications.filter(n => n.type === 'expired').length;
+      document.getElementById('countActivity').textContent = notifications.filter(n => n.type === 'activity').length;
+
+      const sidebarBadge = document.getElementById('sidebarBadge');
+      if (unreadCount > 0) {
+        sidebarBadge.textContent = unreadCount;
+        sidebarBadge.classList.remove('d-none');
+      } else {
+        sidebarBadge.classList.add('d-none');
+      }
+    }
+
+    function renderNotifications() {
+      const container = document.getElementById('notificationList');
+      const emptyState = document.getElementById('emptyNotifState');
+
+      let filtered = notifications;
+      if (currentFilter === 'unread') filtered = notifications.filter(n => n.unread);
+      else if (currentFilter === 'expiring') filtered = notifications.filter(n => n.type === 'expiring');
+      else if (currentFilter === 'expired') filtered = notifications.filter(n => n.type === 'expired');
+      else if (currentFilter === 'activity') filtered = notifications.filter(n => n.type === 'activity');
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('d-none');
+        return;
+      }
+
+      emptyState.classList.add('d-none');
+
+      container.innerHTML = filtered.map(n => `
+        <div class="notification-item ${n.unread ? 'unread' : ''}" id="notifItem-${n.id}">
+          <div class="notif-icon ${n.iconType}">
+            ${getIcon(n.iconType)}
+          </div>
+          <div class="flex-grow-1">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <div class="fw-semibold text-dark small">
+                ${n.title}
+                ${n.unread ? '<span class="unread-dot" title="Unread"></span>' : ''}
+              </div>
+              <span class="text-muted" style="font-size: 0.72rem;">${n.time}</span>
+            </div>
+            <p class="text-muted small mb-2">${n.desc}</p>
+            <div class="d-flex gap-2">
+              <a href="${n.actionHref}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;">
+                ${n.actionLabel}
+              </a>
+              ${n.unread ? `
+                <button type="button" class="btn btn-sm btn-link text-decoration-none text-muted py-0 px-1" style="font-size: 0.75rem;" onclick="markSingleRead(${n.id})">
+                  Mark Read
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+
+      updateCounts();
+    }
+
+    function filterTab(tab, el) {
+      currentFilter = tab;
+      document.querySelectorAll('#notifTabs .nav-link').forEach(link => link.classList.remove('active'));
+      el.classList.add('active');
+      renderNotifications();
+    }
+
+    function markSingleRead(id) {
+      const item = notifications.find(n => n.id === id);
+      if (item) item.unread = false;
+      renderNotifications();
+    }
+
+    function markAllAsRead() {
+      notifications.forEach(n => n.unread = false);
+      renderNotifications();
+    }
+
+    function clearAllNotifications() {
+      notifications = notifications.filter(n => n.unread);
+      renderNotifications();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderNotifications();
+    });
+  </script>
+</body>
+</html>

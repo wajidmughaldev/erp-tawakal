@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employee Profile - Muhammad Ali - Smart ID Portal</title>
+  <!-- Bootstrap 5.3 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Latin Google Fonts: Anek Latin & Lato -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wght@300;400;500;600&family=Lato:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand-deep: #123B6D;
+      --brand-dark: #092A4A;
+      --brand-gold: #D4AF37;
+      --bg-page: #F6F8FB;
+      --border-color: #E5E7EB;
+      --text-main: #111827;
+      --text-muted: #6B7280;
+      --sidebar-width: 250px;
+      --header-height: 68px;
+    }
+    body, button, input, select, textarea {
+      font-family: 'Anek Latin', 'Lato', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      margin: 0;
+      overflow-x: hidden;
+      font-weight: 400;
+    }
+
+    /* Max 600 bold requirement across entire site */
+    b, strong, th, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6, .fw-bold, .fw-bolder {
+      font-weight: 600 !important;
+    }
+    .app-sidebar {
+      width: var(--sidebar-width);
+      background-color: var(--brand-dark);
+      color: #FFFFFF;
+      min-height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1020;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .sidebar-brand {
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      padding: 0 1.25rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      background-color: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--brand-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.75rem;
+      flex-shrink: 0;
+    }
+    .sidebar-nav {
+      padding: 1rem 0.75rem;
+      flex-grow: 1;
+    }
+    .nav-section-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: rgba(255, 255, 255, 0.45);
+      padding: 0.5rem 0.75rem 0.25rem;
+      font-weight: 600;
+    }
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      padding: 0.65rem 0.75rem;
+      color: rgba(255, 255, 255, 0.75);
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+      transition: all 0.15s ease;
+    }
+    .sidebar-link:hover {
+      color: #FFFFFF;
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+    .sidebar-link.active {
+      color: #FFFFFF;
+      background-color: var(--brand-deep);
+      border-left: 3px solid var(--brand-gold);
+    }
+    .sidebar-link svg {
+      margin-right: 0.75rem;
+      opacity: 0.85;
+      flex-shrink: 0;
+    }
+    .sidebar-footer {
+      padding: 1rem 0.75rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background-color: rgba(0, 0, 0, 0.15);
+    }
+    .app-main {
+      margin-left: var(--sidebar-width);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (max-width: 991.98px) {
+      .app-sidebar { display: none; }
+      .app-main { margin-left: 0; }
+    }
+    .app-header {
+      height: var(--header-height);
+      background-color: #FFFFFF;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .admin-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: var(--brand-deep);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .btn-primary-custom {
+      background-color: var(--brand-deep);
+      border-color: var(--brand-deep);
+      color: #FFFFFF;
+      font-weight: 500;
+      padding: 0.45rem 0.95rem;
+    }
+    .btn-primary-custom:hover {
+      background-color: #0c2d54;
+      border-color: #0c2d54;
+      color: #FFFFFF;
+    }
+    .card-box {
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .card-box-header {
+      padding: 0.85rem 1.25rem;
+      background-color: #FAFAFA;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--brand-dark);
+    }
+    .card-box-body {
+      padding: 1.25rem;
+    }
+
+    /* Profile Header */
+    .profile-hero-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .profile-avatar-circle {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background-color: #E2E8F0;
+      color: var(--brand-deep);
+      font-weight: 600;
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--border-color);
+      flex-shrink: 0;
+    }
+
+    /* Nav Tabs Custom */
+    .custom-nav-tabs .nav-link {
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 0.875rem;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 0.75rem 1.25rem;
+      border-radius: 0;
+    }
+    .custom-nav-tabs .nav-link.active {
+      color: var(--brand-deep);
+      border-bottom: 2px solid var(--brand-deep);
+      background-color: transparent;
+      font-weight: 600;
+    }
+
+    /* Timeline */
+    .timeline-container {
+      position: relative;
+      padding-left: 2rem;
+    }
+    .timeline-container::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background-color: var(--border-color);
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 1.75rem;
+    }
+    .timeline-item:last-child {
+      margin-bottom: 0;
+    }
+    .timeline-point {
+      position: absolute;
+      left: -2rem;
+      top: 4px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: #FFFFFF;
+      border: 3px solid var(--brand-deep);
+    }
+    .timeline-point.gold {
+      border-color: var(--brand-gold);
+    }
+    .timeline-point.danger {
+      border-color: #DC2626;
+    }
+
+    .data-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+    }
+    .data-value {
+      font-weight: 500;
+      color: var(--text-main);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Desktop Sidebar -->
+  <aside class="app-sidebar">
+    <div>
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+            <circle cx="8" cy="10" r="2"></circle>
+            <path d="M14 8h4M14 12h4M6 16h12"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="fw-bold text-white small lh-1">SmartID Portal</div>
+          <span class="text-white-50" style="font-size: 0.6875rem;">Enterprise Edition</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">Navigation</div>
+        <a href="dashboard.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Dashboard
+        </a>
+        <a href="employees.html" class="sidebar-link active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Employees
+        </a>
+        <a href="id-cards.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <line x1="2" y1="10" x2="22" y2="10"></line>
+          </svg>
+          ID Cards
+        </a>
+        <a href="notifications.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          Notifications
+          <span class="badge bg-danger ms-auto small" style="font-size: 0.65rem;">3</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <div class="admin-avatar me-2" style="width: 32px; height: 32px; font-size: 0.75rem;">N</div>
+          <div>
+            <div class="text-white small fw-medium lh-1">Noman</div>
+            <span class="text-white-50" style="font-size: 0.7rem;">System Admin</span>
+          </div>
+        </div>
+        <a href="login.html" class="text-white-50 text-decoration-none" title="Sign out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Mobile Offcanvas -->
+  <div class="offcanvas offcanvas-start bg-dark text-white" tabindex="-1" id="mobileSidebar" style="background-color: var(--brand-dark) !important; width: 260px;">
+    <div class="offcanvas-header border-bottom border-secondary border-opacity-25" style="height: var(--header-height);">
+      <div class="d-flex align-items-center">
+        <div class="brand-icon me-2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+            <circle cx="8" cy="10" r="2"></circle>
+            <path d="M14 8h4M14 12h4M6 16h12"></path>
+          </svg>
+        </div>
+        <span class="fw-bold text-white">SmartID Portal</span>
+      </div>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-3">
+      <a href="dashboard.html" class="sidebar-link">Dashboard</a>
+      <a href="employees.html" class="sidebar-link active">Employees</a>
+      <a href="id-cards.html" class="sidebar-link">ID Cards</a>
+      <a href="notifications.html" class="sidebar-link">Notifications</a>
+      <hr class="border-secondary my-3">
+      <a href="login.html" class="sidebar-link text-danger">Logout</a>
+    </div>
+  </div>
+
+  <!-- Main Content Wrapper -->
+  <div class="app-main">
+    <header class="app-header">
+      <div class="d-flex align-items-center">
+        <button class="btn btn-outline-secondary d-lg-none me-2 p-1 px-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileSidebar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb mb-0 small">
+            <li class="breadcrumb-item"><a href="employees.html" class="text-decoration-none text-muted">Employees</a></li>
+            <li class="breadcrumb-item active text-dark fw-semibold" aria-current="page">Muhammad Ali</li>
+          </ol>
+        </nav>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <a href="employees.html" class="btn btn-sm btn-outline-secondary">Back to Directory</a>
+      </div>
+    </header>
+
+    <main class="p-3 p-md-4 flex-grow-1">
+      <!-- Profile Header Hero Card -->
+      <div class="profile-hero-card">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+          <div class="d-flex align-items-center">
+            <div class="profile-avatar-circle me-3">MA</div>
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                <h2 class="h5 fw-bold text-dark mb-0" id="profileName">Muhammad Ali</h2>
+                <span class="badge bg-success-subtle text-success border border-success-subtle" id="profileStatusBadge">Active</span>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="profileCardBadge">ID Active</span>
+              </div>
+              <div class="text-muted small">
+                <span class="fw-semibold text-secondary">Technician</span> &middot; ID: <code class="text-dark fw-bold">EMP-00123</code> &middot; NIC: 42101-1234567-1
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <a href="id-card-detail.html?card=CARD-00421" class="btn btn-sm btn-outline-primary" id="viewCardHeroBtn">
+              View ID Card
+            </a>
+            <a href="edit-employee.html?id=EMP-00123" class="btn btn-sm btn-outline-secondary">
+              Edit Employee
+            </a>
+            <div class="dropdown">
+              <button class="btn btn-sm btn-primary-custom dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                Employment Action
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-sm small border">
+                <li><button class="dropdown-item py-2" onclick="openTransferModal()">Transfer Employee</button></li>
+                <li><button class="dropdown-item py-2 text-danger" onclick="openResignModal()">Process Resignation</button></li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><button class="dropdown-item py-2" onclick="openOtherActionModal()">Other Action</button></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Confirmation Toast / Banner -->
+      <div id="actionAlertBanner" class="alert alert-info alert-dismissible fade show d-none" role="alert">
+        <span id="actionAlertText">Action performed successfully.</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <ul class="nav nav-tabs custom-nav-tabs border-bottom mb-4" id="profileTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab">Overview</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">Employment History</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="cards-tab" data-bs-toggle="tab" data-bs-target="#cards" type="button" role="tab">ID Cards</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="docs-tab" data-bs-toggle="tab" data-bs-target="#docs" type="button" role="tab">Documents</button>
+        </li>
+      </ul>
+
+      <!-- Tab Contents -->
+      <div class="tab-content" id="profileTabsContent">
+
+        <!-- 1. OVERVIEW TAB -->
+        <div class="tab-pane fade show active" id="overview" role="tabpanel">
+          <div class="row g-4">
+            <!-- Left col: Personal & Contact -->
+            <div class="col-lg-7">
+              <!-- Personal Information -->
+              <div class="card-box">
+                <div class="card-box-header">Personal Information</div>
+                <div class="card-box-body">
+                  <div class="row g-3">
+                    <div class="col-sm-6">
+                      <div class="data-label">Full Name</div>
+                      <div class="data-value">Muhammad Ali</div>
+                    </div>
+                    <div class="col-sm-3">
+                      <div class="data-label">Blood Group</div>
+                      <div class="data-value"><span class="badge bg-danger text-white">B+</span></div>
+                    </div>
+                    <div class="col-sm-3">
+                      <div class="data-label">Date of Birth</div>
+                      <div class="data-value">14 Mar 1994</div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="data-label">NIC / CNIC</div>
+                      <div class="data-value font-monospace">42101-1234567-1</div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="data-label">Gender</div>
+                      <div class="data-value">Male</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Contact Information -->
+              <div class="card-box">
+                <div class="card-box-header">Contact Information</div>
+                <div class="card-box-body">
+                  <div class="row g-3">
+                    <div class="col-sm-6">
+                      <div class="data-label">Phone Number</div>
+                      <div class="data-value">+92 300 1234567</div>
+                    </div>
+                    <div class="col-sm-6">
+                      <div class="data-label">Email Address</div>
+                      <div class="data-value">m.ali@example.com</div>
+                    </div>
+                    <div class="col-12">
+                      <div class="data-label">Residential Address</div>
+                      <div class="data-value">House 42, St 7, Sector F-8, Islamabad</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Emergency Contact -->
+              <div class="card-box">
+                <div class="card-box-header">Emergency Contact</div>
+                <div class="card-box-body">
+                  <div class="row g-3">
+                    <div class="col-sm-4">
+                      <div class="data-label">Contact Name</div>
+                      <div class="data-value">Fatima Ali</div>
+                    </div>
+                    <div class="col-sm-4">
+                      <div class="data-label">Relationship</div>
+                      <div class="data-value">Spouse</div>
+                    </div>
+                    <div class="col-sm-4">
+                      <div class="data-label">Emergency Phone</div>
+                      <div class="data-value text-danger fw-bold">+92 321 9876543</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right col: Employment & Current Card -->
+            <div class="col-lg-5">
+              <!-- Employment Information -->
+              <div class="card-box">
+                <div class="card-box-header">Employment Details</div>
+                <div class="card-box-body">
+                  <div class="row g-3">
+                    <div class="col-6">
+                      <div class="data-label">Employee ID</div>
+                      <div class="data-value font-monospace">EMP-00123</div>
+                    </div>
+                    <div class="col-6">
+                      <div class="data-label">Designation</div>
+                      <div class="data-value" id="dispDesignation">Technician</div>
+                    </div>
+                    <div class="col-6">
+                      <div class="data-label">Joining Date</div>
+                      <div class="data-value">15 Aug 2022</div>
+                    </div>
+                    <div class="col-6">
+                      <div class="data-label">Department / Unit</div>
+                      <div class="data-value" id="dispDepartment">Central Workshop</div>
+                    </div>
+                    <div class="col-12">
+                      <div class="data-label">Status</div>
+                      <div class="data-value" id="dispStatus">Active</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Current ID Card -->
+              <div class="card-box" style="border-left: 4px solid var(--brand-deep);">
+                <div class="card-box-header d-flex justify-content-between align-items-center">
+                  <span>Current Active ID Card</span>
+                  <span class="badge bg-success-subtle text-success" id="currCardStatus">Active</span>
+                </div>
+                <div class="card-box-body">
+                  <div class="mb-3">
+                    <div class="data-label">Card Number</div>
+                    <div class="h5 fw-bold font-monospace mb-0 text-dark">CARD-00421</div>
+                  </div>
+
+                  <div class="row g-2 mb-3 small">
+                    <div class="col-6">
+                      <span class="text-muted d-block">Issued:</span>
+                      <strong>14 Sep 2026</strong>
+                    </div>
+                    <div class="col-6">
+                      <span class="text-muted d-block">Expires:</span>
+                      <strong>14 Aug 2027</strong>
+                    </div>
+                    <div class="col-6 mt-2">
+                      <span class="text-muted d-block">QR Verification:</span>
+                      <span class="text-success fw-semibold" id="qrStatusBadge">Active &amp; Linked</span>
+                    </div>
+                  </div>
+
+                  <div class="d-flex gap-2">
+                    <a href="id-card-detail.html?card=CARD-00421" class="btn btn-sm btn-primary-custom flex-grow-1 text-center">
+                      View ID Card
+                    </a>
+                    <a href="renew-card.html?card=CARD-00421" class="btn btn-sm btn-outline-secondary">
+                      Renew
+                    </a>
+                    <a href="reissue-card.html?card=CARD-00421" class="btn btn-sm btn-outline-secondary">
+                      Reissue
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. EMPLOYMENT HISTORY TAB -->
+        <div class="tab-pane fade" id="history" role="tabpanel">
+          <div class="card-box p-4">
+            <h3 class="h6 fw-bold text-dark mb-4">Chronological Activity &amp; Action Log</h3>
+            <div class="timeline-container" id="timelineList">
+              <div class="timeline-item">
+                <div class="timeline-point gold"></div>
+                <div class="fw-semibold text-dark">Smart ID Card Issued</div>
+                <div class="text-muted small">Card CARD-00421 issued with 11-month validity. QR code verification active.</div>
+                <div class="text-muted mt-1" style="font-size: 0.75rem;">14 Sep 2026 &middot; Performed by Noman (System Admin)</div>
+              </div>
+
+              <div class="timeline-item">
+                <div class="timeline-point"></div>
+                <div class="fw-semibold text-dark">Employee Information Updated</div>
+                <div class="text-muted small">Updated residential address and emergency contact number.</div>
+                <div class="text-muted mt-1" style="font-size: 0.75rem;">10 Jan 2025 &middot; Performed by Amina Tariq (HR Officer)</div>
+              </div>
+
+              <div class="timeline-item">
+                <div class="timeline-point"></div>
+                <div class="fw-semibold text-dark">Internal Transfer</div>
+                <div class="text-muted small">Transferred from Sub-Facility North to Central Workshop. Effective immediately.</div>
+                <div class="text-muted mt-1" style="font-size: 0.75rem;">01 Jul 2024 &middot; Approved by Operations Directorate</div>
+              </div>
+
+              <div class="timeline-item">
+                <div class="timeline-point"></div>
+                <div class="fw-semibold text-dark">Employee Record Created</div>
+                <div class="text-muted small">Onboarded as Technician (EMP-00123). Verified NIC 42101-1234567-1.</div>
+                <div class="text-muted mt-1" style="font-size: 0.75rem;">15 Aug 2022 &middot; Initial onboarding by System</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. ID CARDS TAB -->
+        <div class="tab-pane fade" id="cards" role="tabpanel">
+          <div class="card-box mb-4 p-3 bg-light border">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+              <div>
+                <span class="text-muted small">Current Active Card:</span>
+                <span class="h6 fw-bold ms-1 text-dark">CARD-00421</span>
+                <span class="badge bg-success ms-2">Active</span>
+              </div>
+              <div>
+                <a href="id-card-detail.html?card=CARD-00421" class="btn btn-sm btn-primary-custom">Open Current Card</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-box">
+            <div class="card-box-header">Card Issuance History</div>
+            <div class="table-responsive">
+              <table class="table custom-table mb-0 align-middle">
+                <thead>
+                  <tr>
+                    <th>Card Number</th>
+                    <th>Issue Date</th>
+                    <th>Expiry Date</th>
+                    <th>Status</th>
+                    <th>QR Status</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>CARD-00421</code></td>
+                    <td>14 Sep 2026</td>
+                    <td>14 Aug 2027</td>
+                    <td><span class="badge bg-success-subtle text-success">Active</span></td>
+                    <td><span class="text-success small fw-medium">Active</span></td>
+                    <td class="text-end">
+                      <a href="id-card-detail.html?card=CARD-00421" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">View</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>CARD-00398</code></td>
+                    <td>14 Oct 2025</td>
+                    <td>14 Sep 2026</td>
+                    <td><span class="badge bg-secondary-subtle text-secondary">Replaced</span></td>
+                    <td><span class="text-muted small">Deactivated</span></td>
+                    <td class="text-end">
+                      <a href="id-card-detail.html?card=CARD-00398" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">View</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td><code>CARD-00312</code></td>
+                    <td>15 Aug 2024</td>
+                    <td>15 Jul 2025</td>
+                    <td><span class="badge bg-light text-muted border">Expired</span></td>
+                    <td><span class="text-muted small">Deactivated</span></td>
+                    <td class="text-end">
+                      <a href="id-card-detail.html?card=CARD-00312" class="btn btn-sm btn-outline-secondary py-1 px-2" style="font-size: 0.75rem;">View</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. DOCUMENTS TAB -->
+        <div class="tab-pane fade" id="docs" role="tabpanel">
+          <div class="card-box">
+            <div class="card-box-header">Stored Identification &amp; Employment Documents</div>
+            <div class="card-box-body">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div class="p-3 border rounded bg-light d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center text-truncate me-2">
+                      <svg class="text-primary me-3 flex-shrink-0" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                      <div>
+                        <div class="fw-semibold text-dark text-truncate">NIC_CNIC_Scanned_Copy.pdf</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">PDF &middot; 1.4 MB &middot; Uploaded 15 Aug 2022</div>
+                      </div>
+                    </div>
+                    <div class="d-flex gap-1 flex-shrink-0">
+                      <button class="btn btn-sm btn-outline-secondary" onclick="alert('Viewing document preview (mock).')">View</button>
+                      <button class="btn btn-sm btn-outline-secondary" onclick="alert('Downloading document (mock).')">Download</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <div class="p-3 border rounded bg-light d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center text-truncate me-2">
+                      <svg class="text-primary me-3 flex-shrink-0" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                      </svg>
+                      <div>
+                        <div class="fw-semibold text-dark text-truncate">Employment_Appointment_Letter.pdf</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">PDF &middot; 840 KB &middot; Uploaded 15 Aug 2022</div>
+                      </div>
+                    </div>
+                    <div class="d-flex gap-1 flex-shrink-0">
+                      <button class="btn btn-sm btn-outline-secondary" onclick="alert('Viewing document preview (mock).')">View</button>
+                      <button class="btn btn-sm btn-outline-secondary" onclick="alert('Downloading document (mock).')">Download</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- MODAL 1: TRANSFER EMPLOYEE -->
+  <div class="modal fade" id="transferModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title h6 fw-bold">Transfer Employee</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body py-3">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Transfer To (Department / Location)</label>
+            <select class="form-select form-select-sm" id="transferTargetSelect">
+              <option value="Operations Lab">Operations Lab</option>
+              <option value="Facility B - Regional Hub">Facility B - Regional Hub</option>
+              <option value="Logistics Depot 4">Logistics Depot 4</option>
+              <option value="North Technical Division">North Technical Division</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Effective Date</label>
+            <input type="date" class="form-control form-control-sm" id="transferEffectiveDate">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Reason for Transfer</label>
+            <input type="text" class="form-control form-control-sm" id="transferReason" placeholder="e.g. Operational requirement">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold text-secondary">Internal Notes</label>
+            <textarea class="form-control form-control-sm" id="transferNotes" rows="2" placeholder="Administrative notes..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm btn-primary-custom" onclick="openTransferConfirmModal()">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 1B: CONFIRM TRANSFER -->
+  <div class="modal fade" id="transferConfirmModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title h6 fw-bold">Confirm Transfer</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body py-3">
+          <p class="small text-muted mb-2">Please confirm transfer of <strong>Muhammad Ali</strong> to <strong id="confirmTransferTarget"></strong>.</p>
+          <div class="p-2 bg-light rounded border small">
+            This action will update the employment record and register an entry in the employment activity timeline.
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Back</button>
+          <button type="button" class="btn btn-sm btn-primary-custom" onclick="executeTransfer()">Confirm &amp; Apply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: RESIGNATION -->
+  <div class="modal fade" id="resignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title h6 fw-bold text-danger">Process Resignation</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body py-3">
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label class="form-label small fw-semibold text-secondary">Resignation Date</label>
+              <input type="date" class="form-control form-control-sm" id="resendDate">
+            </div>
+            <div class="col-6">
+              <label class="form-label small fw-semibold text-secondary">Last Working Date</label>
+              <input type="date" class="form-control form-control-sm" id="lastWorkingDate">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Reason</label>
+            <select class="form-select form-select-sm" id="resignReason">
+              <option value="Personal Reasons">Personal Reasons</option>
+              <option value="Relocation">Relocation</option>
+              <option value="Better Opportunity">Better Opportunity</option>
+              <option value="Retirement">Retirement</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Notes</label>
+            <textarea class="form-control form-control-sm" rows="2" placeholder="Exit clearance notes..."></textarea>
+          </div>
+          <div class="alert alert-warning py-2 px-3 small mb-0">
+            <strong>Deactivation Notice:</strong> Confirming this resignation will set status to <strong>Resigned</strong>, and immediately revoke active Smart ID <code>CARD-00421</code> and QR verification access.
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm btn-danger" onclick="executeResign()">Confirm Resignation</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: OTHER ACTION -->
+  <div class="modal fade" id="otherActionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title h6 fw-bold">Record Employment Action</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body py-3">
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Action Title</label>
+            <input type="text" class="form-control form-control-sm" id="otherActionTitle" placeholder="e.g. Merit Promotion / Role Title Adjustment">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Effective Date</label>
+            <input type="date" class="form-control form-control-sm" id="otherActionDate">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Description</label>
+            <textarea class="form-control form-control-sm" id="otherActionDesc" rows="2" placeholder="Details of this action..."></textarea>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small fw-semibold text-secondary">Internal Notes</label>
+            <input type="text" class="form-control form-control-sm" placeholder="Optional HR reference code...">
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm btn-primary-custom" onclick="executeOtherAction()">Save Action</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Initialize default dates
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('transferEffectiveDate').value = today;
+    document.getElementById('resendDate').value = today;
+    document.getElementById('lastWorkingDate').value = today;
+    document.getElementById('otherActionDate').value = today;
+
+    // Check query param for direct employment action
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('action') === 'employment') {
+      setTimeout(() => openTransferModal(), 300);
+    }
+
+    let transferModalInstance, transferConfirmModalInstance, resignModalInstance, otherActionModalInstance;
+
+    function openTransferModal() {
+      transferModalInstance = new bootstrap.Modal(document.getElementById('transferModal'));
+      transferModalInstance.show();
+    }
+
+    function openTransferConfirmModal() {
+      const target = document.getElementById('transferTargetSelect').value;
+      document.getElementById('confirmTransferTarget').textContent = target;
+      transferModalInstance.hide();
+      transferConfirmModalInstance = new bootstrap.Modal(document.getElementById('transferConfirmModal'));
+      transferConfirmModalInstance.show();
+    }
+
+    function executeTransfer() {
+      const target = document.getElementById('transferTargetSelect').value;
+      transferConfirmModalInstance.hide();
+      document.getElementById('dispDepartment').textContent = target;
+
+      addTimelineItem(
+        'Internal Transfer',
+        `Transferred to ${target}. Reason: ${document.getElementById('transferReason').value || 'Operational deployment'}.`,
+        'Just now &middot; Performed by Noman (System Admin)'
+      );
+
+      showAlert(`Employee transfer to ${target} recorded successfully.`);
+    }
+
+    function openResignModal() {
+      resignModalInstance = new bootstrap.Modal(document.getElementById('resignModal'));
+      resignModalInstance.show();
+    }
+
+    function executeResign() {
+      resignModalInstance.hide();
+
+      // Update badges
+      const statusBadge = document.getElementById('profileStatusBadge');
+      statusBadge.textContent = 'Resigned';
+      statusBadge.className = 'badge bg-secondary-subtle text-secondary border border-secondary-subtle';
+
+      const cardBadge = document.getElementById('profileCardBadge');
+      cardBadge.textContent = 'ID Deactivated';
+      cardBadge.className = 'badge bg-danger-subtle text-danger border border-danger-subtle';
+
+      document.getElementById('dispStatus').innerHTML = '<span class="text-secondary fw-semibold">Resigned</span>';
+      document.getElementById('currCardStatus').textContent = 'Deactivated';
+      document.getElementById('currCardStatus').className = 'badge bg-secondary';
+      document.getElementById('qrStatusBadge').textContent = 'Deactivated';
+      document.getElementById('qrStatusBadge').className = 'text-danger fw-semibold';
+
+      addTimelineItem(
+        'Resignation Processed',
+        `Employee marked as Resigned. Associated Smart ID CARD-00421 and QR code credentials revoked.`,
+        'Just now &middot; Performed by Noman (System Admin)',
+        'danger'
+      );
+
+      showAlert(`Resignation processed. Employee credentials have been revoked.`);
+    }
+
+    function openOtherActionModal() {
+      otherActionModalInstance = new bootstrap.Modal(document.getElementById('otherActionModal'));
+      otherActionModalInstance.show();
+    }
+
+    function executeOtherAction() {
+      const title = document.getElementById('otherActionTitle').value || 'Administrative Action Recorded';
+      const desc = document.getElementById('otherActionDesc').value || 'Employment action applied to employee record.';
+      otherActionModalInstance.hide();
+
+      addTimelineItem(title, desc, 'Just now &middot; Performed by Noman (System Admin)');
+      showAlert(`${title} added to employment history.`);
+    }
+
+    function addTimelineItem(title, desc, meta, type = '') {
+      const container = document.getElementById('timelineList');
+      const item = document.createElement('div');
+      item.className = 'timeline-item';
+      item.innerHTML = `
+        <div class="timeline-point ${type}"></div>
+        <div class="fw-semibold text-dark">${title}</div>
+        <div class="text-muted small">${desc}</div>
+        <div class="text-muted mt-1" style="font-size: 0.75rem;">${meta}</div>
+      `;
+      container.insertBefore(item, container.firstChild);
+    }
+
+    function showAlert(msg) {
+      const banner = document.getElementById('actionAlertBanner');
+      document.getElementById('actionAlertText').textContent = msg;
+      banner.classList.remove('d-none');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>

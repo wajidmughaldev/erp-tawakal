@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generate ID Card - Smart ID Portal</title>
+  <!-- Bootstrap 5.3 CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Latin Google Fonts: Anek Latin & Lato -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anek+Latin:wght@300;400;500;600&family=Lato:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand-deep: #123B6D;
+      --brand-dark: #092A4A;
+      --brand-gold: #D4AF37;
+      --bg-page: #F6F8FB;
+      --border-color: #E5E7EB;
+      --text-main: #111827;
+      --text-muted: #6B7280;
+      --sidebar-width: 250px;
+      --header-height: 68px;
+    }
+    body, button, input, select, textarea {
+      font-family: 'Anek Latin', 'Lato', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    body {
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      margin: 0;
+      overflow-x: hidden;
+      font-weight: 400;
+    }
+
+    /* Max 600 bold requirement across entire site */
+    b, strong, th, h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6, .fw-bold, .fw-bolder {
+      font-weight: 600 !important;
+    }
+    .app-sidebar {
+      width: var(--sidebar-width);
+      background-color: var(--brand-dark);
+      color: #FFFFFF;
+      min-height: 100vh;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 1020;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .sidebar-brand {
+      height: var(--header-height);
+      display: flex;
+      align-items: center;
+      padding: 0 1.25rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .brand-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      background-color: rgba(212, 175, 55, 0.15);
+      border: 1px solid var(--brand-gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 0.75rem;
+      flex-shrink: 0;
+    }
+    .sidebar-nav {
+      padding: 1rem 0.75rem;
+      flex-grow: 1;
+    }
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      padding: 0.65rem 0.75rem;
+      color: rgba(255, 255, 255, 0.75);
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+      transition: all 0.15s ease;
+    }
+    .sidebar-link:hover {
+      color: #FFFFFF;
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+    .sidebar-link.active {
+      color: #FFFFFF;
+      background-color: var(--brand-deep);
+      border-left: 3px solid var(--brand-gold);
+    }
+    .sidebar-link svg {
+      margin-right: 0.75rem;
+      opacity: 0.85;
+      flex-shrink: 0;
+    }
+    .sidebar-footer {
+      padding: 1rem 0.75rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      background-color: rgba(0, 0, 0, 0.15);
+    }
+    .app-main {
+      margin-left: var(--sidebar-width);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (max-width: 991.98px) {
+      .app-sidebar { display: none; }
+      .app-main { margin-left: 0; }
+    }
+    .app-header {
+      height: var(--header-height);
+      background-color: #FFFFFF;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .admin-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background-color: var(--brand-deep);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .btn-primary-custom {
+      background-color: var(--brand-deep);
+      border-color: var(--brand-deep);
+      color: #FFFFFF;
+      font-weight: 500;
+      padding: 0.5rem 1.25rem;
+    }
+    .btn-primary-custom:hover {
+      background-color: #0c2d54;
+      border-color: #0c2d54;
+      color: #FFFFFF;
+    }
+    .card-box {
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 1.25rem;
+    }
+    .card-box-header {
+      padding: 0.85rem 1.25rem;
+      background-color: #FAFAFA;
+      border-bottom: 1px solid var(--border-color);
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: var(--brand-dark);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-box-body {
+      padding: 1.25rem;
+    }
+
+    /* Physical Smart ID Card Visual Simulation */
+    .id-card-stage {
+      perspective: 1000px;
+      display: flex;
+      justify-content: center;
+      padding: 1rem 0;
+    }
+    .id-card-wrapper {
+      width: 100%;
+      max-width: 480px;
+      aspect-ratio: 1.586; /* Standard ISO/IEC 7810 ID-1 landscape */
+      background: #FFFFFF;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(9, 42, 74, 0.12);
+      border: 1px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 1.25rem;
+      transition: all 0.3s ease;
+    }
+    .id-card-header-bar {
+      border-bottom: 2px solid var(--brand-gold);
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .id-card-photo {
+      width: 78px;
+      height: 96px;
+      border-radius: 6px;
+      background-color: #E2E8F0;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: var(--brand-deep);
+      flex-shrink: 0;
+    }
+    .mock-qr-box {
+      width: 68px;
+      height: 68px;
+      border: 1px solid var(--border-color);
+      background-color: #F8FAFC;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .mock-qr-pattern {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      grid-gap: 2px;
+      width: 52px;
+      height: 52px;
+    }
+    .qr-dot {
+      background-color: #1E293B;
+      border-radius: 1px;
+    }
+    .qr-dot-empty {
+      background-color: transparent;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Desktop Sidebar -->
+  <aside class="app-sidebar">
+    <div>
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+            <circle cx="8" cy="10" r="2"></circle>
+            <path d="M14 8h4M14 12h4M6 16h12"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="fw-bold text-white small lh-1">SmartID Portal</div>
+          <span class="text-white-50" style="font-size: 0.6875rem;">Enterprise Edition</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Dashboard
+        </a>
+        <a href="employees.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          Employees
+        </a>
+        <a href="employee-requests.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          Employee Requests
+        </a>
+        <a href="id-cards.html" class="sidebar-link active">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+            <line x1="2" y1="10" x2="22" y2="10"></line>
+          </svg>
+          ID Cards
+        </a>
+        <a href="notifications.html" class="sidebar-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          Notifications
+        </a>
+      </nav>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+          <div class="admin-avatar me-2" style="width: 32px; height: 32px; font-size: 0.75rem;">N</div>
+          <div>
+            <div class="text-white small fw-medium lh-1">Noman</div>
+            <span class="text-white-50" style="font-size: 0.7rem;">System Admin</span>
+          </div>
+        </div>
+        <a href="login.html" class="text-white-50"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Content Wrapper -->
+  <div class="app-main">
+    <header class="app-header">
+      <div class="d-flex align-items-center">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumb mb-0 small">
+            <li class="breadcrumb-item"><a href="employees.html" class="text-decoration-none text-muted">Employees</a></li>
+            <li class="breadcrumb-item"><a href="employee-detail.html?id=EMP-00123" class="text-decoration-none text-muted">Muhammad Ali</a></li>
+            <li class="breadcrumb-item active text-dark fw-semibold">Generate ID Card</li>
+          </ol>
+        </nav>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <a href="employee-detail.html?id=EMP-00123" class="btn btn-sm btn-outline-secondary">Cancel</a>
+        <button type="button" class="btn btn-sm btn-primary-custom" id="topGenerateBtn" onclick="openGenerateModal()">
+          Generate ID Card
+        </button>
+      </div>
+    </header>
+
+    <main class="p-3 p-md-4 flex-grow-1">
+      <div class="container-fluid">
+        <!-- Title -->
+        <div class="mb-4">
+          <h2 class="h4 fw-bold text-dark mb-1">Generate ID Card</h2>
+          <p class="text-muted small mb-0">Review verified employee identity information and issue a new smart identification card.</p>
+        </div>
+
+        <!-- Incomplete Profile Warning (Sample JS demonstration component) -->
+        <div id="incompleteProfileAlert" class="alert alert-danger py-2 px-3 small d-none" role="alert">
+          <strong>Cannot Generate ID Card:</strong> Required employee fields are missing. Please complete employee profile first.
+        </div>
+
+        <!-- Success Result Panel (hidden initially) -->
+        <div id="generateSuccessPanel" class="alert alert-success p-3 mb-4 d-none" role="alert">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+            <div>
+              <h4 class="h6 fw-bold mb-1">Smart ID Card Issued Successfully!</h4>
+              <p class="small mb-0 text-success-emphasis">Assigned ID Card Number: <strong class="font-monospace">CARD-00421</strong> &middot; Valid for 11 Months until 14 Aug 2027.</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+              <button class="btn btn-sm btn-outline-success" onclick="alert('Sending card payload to card printer...')">Print Card</button>
+              <button class="btn btn-sm btn-outline-success" onclick="alert('Downloading vector PDF...')">Download Card</button>
+              <a href="verify.html?code=CARD-00421" target="_blank" class="btn btn-sm btn-outline-primary fw-semibold">Open QR Scan Page &rarr;</a>
+              <a href="id-card-detail.html?card=CARD-00421" class="btn btn-sm btn-success">View Card Details</a>
+              <a href="employee-detail.html?id=EMP-00123" class="btn btn-sm btn-outline-secondary">View Employee</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2 Column Layout: Left 45%, Right 55% -->
+        <div class="row g-4">
+          <!-- Left Column (45%) -->
+          <div class="col-lg-5">
+            <!-- 1. Employee Info -->
+            <div class="card-box">
+              <div class="card-box-header">
+                <span>1. Verified Employee Information</span>
+                <a href="edit-employee.html?id=EMP-00123" class="btn btn-sm btn-link p-0 text-decoration-none small">Edit Information</a>
+              </div>
+              <div class="card-box-body">
+                <div class="d-flex align-items-center mb-3">
+                  <div class="employee-photo-thumb me-3" style="width: 44px; height: 44px; border-radius: 50%; background-color: #E2E8F0; display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--brand-deep);">
+                    MA
+                  </div>
+                  <div>
+                    <div class="fw-bold text-dark">Muhammad Ali</div>
+                    <div class="text-muted small">Technician &middot; <code>EMP-00123</code></div>
+                  </div>
+                </div>
+
+                <div class="row g-2 small">
+                  <div class="col-6">
+                    <span class="text-muted d-block">Phone:</span>
+                    <strong>+92 300 1234567</strong>
+                  </div>
+                  <div class="col-6">
+                    <span class="text-muted d-block">Emergency Phone:</span>
+                    <strong class="text-danger">+92 321 9876543</strong>
+                  </div>
+                  <div class="col-6 mt-2">
+                    <span class="text-muted d-block">Blood Group:</span>
+                    <span class="badge bg-danger">B+</span>
+                  </div>
+                  <div class="col-6 mt-2">
+                    <span class="text-muted d-block">NIC / CNIC:</span>
+                    <span class="font-monospace">42101-1234567-1</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Card Information -->
+            <div class="card-box">
+              <div class="card-box-header">
+                <span>2. Card Parameters</span>
+              </div>
+              <div class="card-box-body">
+                <div class="row g-2 small">
+                  <div class="col-6">
+                    <span class="text-muted d-block">Card Number:</span>
+                    <span class="text-secondary fw-semibold" id="labelCardNum">Generated on issue</span>
+                  </div>
+                  <div class="col-6">
+                    <span class="text-muted d-block">Issue Date:</span>
+                    <strong id="labelIssueDate">14 Sep 2026 (Today)</strong>
+                  </div>
+                  <div class="col-6 mt-2">
+                    <span class="text-muted d-block">Expiry Date:</span>
+                    <strong class="text-primary" id="labelExpiryDate">14 Aug 2027</strong>
+                  </div>
+                  <div class="col-6 mt-2">
+                    <span class="text-muted d-block">Institutional Validity:</span>
+                    <span class="badge bg-light text-dark border">11 Months</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Policy Banner -->
+            <div class="p-3 bg-light rounded border small mb-3">
+              <div class="d-flex">
+                <svg class="text-primary me-2 flex-shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+                <span class="text-muted">
+                  This ID card will remain valid for <strong>11 months</strong> from the issue date per enterprise compliance protocol.
+                </span>
+              </div>
+            </div>
+
+            <!-- 4. QR Verification -->
+            <div class="card-box">
+              <div class="card-box-header">4. QR Verification Credential</div>
+              <div class="card-box-body small">
+                <p class="text-muted mb-2">A unique high-entropy verification token is cryptographically generated and encoded into the card QR code.</p>
+                <div class="d-flex align-items-center text-secondary">
+                  <span class="badge bg-secondary-subtle text-secondary me-2" id="qrStatusPill">Awaiting Generation</span>
+                  <span>Will be activated upon issuance</span>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-primary-custom w-100 py-2 mt-2" id="bottomGenerateBtn" onclick="openGenerateModal()">
+              Issue Smart ID Card
+            </button>
+          </div>
+
+          <!-- Right Column (55%): Live Card Preview -->
+          <div class="col-lg-7">
+            <div class="card-box sticky-top" style="top: 80px; z-index: 990;">
+              <div class="card-box-header">
+                <span class="fw-bold">Live Card Preview</span>
+                <div class="btn-group btn-group-sm" role="group">
+                  <button type="button" class="btn btn-outline-secondary active" id="btnSideFront" onclick="toggleCardSide('front')">Front</button>
+                  <button type="button" class="btn btn-outline-secondary" id="btnSideBack" onclick="toggleCardSide('back')">Back</button>
+                </div>
+              </div>
+
+              <div class="card-box-body text-center bg-light p-4">
+                <div class="id-card-stage">
+                  <!-- Front Side -->
+                  <div class="id-card-wrapper text-start" id="cardFrontSide">
+                    <!-- Card Top Header -->
+                    <div class="id-card-header-bar">
+                      <div class="d-flex align-items-center">
+                        <div class="brand-icon" style="width: 26px; height: 26px; margin-right: 0.5rem;">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="3"></rect>
+                            <circle cx="8" cy="10" r="2"></circle>
+                          </svg>
+                        </div>
+                        <div>
+                          <div class="fw-bold lh-1" style="font-size: 0.78rem; color: var(--brand-dark);">ENTERPRISE PORTAL</div>
+                          <span class="text-muted" style="font-size: 0.65rem;">Identification Credential</span>
+                        </div>
+                      </div>
+                      <span class="badge" style="background-color: var(--brand-deep); color: #fff; font-size: 0.65rem;">EMPLOYEE</span>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="d-flex gap-3 align-items-center my-auto">
+                      <div class="id-card-photo">
+                        <span>MA</span>
+                      </div>
+                      <div class="flex-grow-1">
+                        <div class="h5 fw-bold mb-0 text-dark" style="font-size: 1.05rem;">Muhammad Ali</div>
+                        <div class="text-muted small mb-1">Technician</div>
+                        <div class="small">
+                          <div><strong>ID:</strong> <code class="text-dark">EMP-00123</code></div>
+                          <div><strong>Blood Group:</strong> <span class="badge bg-danger py-0 px-1" style="font-size: 0.68rem;">B+</span></div>
+                        </div>
+                      </div>
+                      <div class="text-end">
+                        <a href="verify.html?code=CARD-00421" id="previewQrLink" target="_blank" title="Scan with mobile camera or click to open verification page" class="d-inline-block text-decoration-none">
+                          <div class="mock-qr-box p-1 bg-white border rounded shadow-sm d-flex flex-column align-items-center justify-content-center" style="width: 64px; height: 64px;">
+                            <img id="previewQrImg" src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https%3A%2F%2Fais-dev-uocrxjitod44cwygp5oeoy-342467491322.asia-southeast1.run.app%2Fverify.html%3Fcode%3DCARD-00421" alt="QR" style="width: 54px; height: 54px; image-rendering: pixelated;" onerror="this.src='https://chart.googleapis.com/chart?chs=120x120&cht=qr&chl=CARD-00421'">
+                          </div>
+                          <span class="text-muted" style="font-size: 0.6rem; display: block; text-align: center; margin-top: 2px;">Scan to Verify</span>
+                        </a>
+                      </div>
+                    </div>
+
+                    <!-- Card Bottom -->
+                    <div class="border-top pt-1 d-flex justify-content-between align-items-center" style="font-size: 0.65rem; color: #64748B;">
+                      <span>Institutional Property &middot; Must be displayed</span>
+                      <span id="previewCardNumFront">CARD-00421</span>
+                    </div>
+                  </div>
+
+                  <!-- Back Side -->
+                  <div class="id-card-wrapper text-start d-none" id="cardBackSide" style="background: #FAFAFA;">
+                    <div>
+                      <div class="fw-bold mb-2 pb-1 border-bottom" style="font-size: 0.78rem; color: var(--brand-dark);">CARD TERMS &amp; EMERGENCY DATA</div>
+                      <div class="small" style="font-size: 0.72rem; line-height: 1.4;">
+                        <div><strong>Employee Phone:</strong> +92 300 1234567</div>
+                        <div><strong>Emergency Contact:</strong> Fatima Ali (+92 321 9876543)</div>
+                        <div><strong>Card Reference:</strong> <code id="previewCardNumBack">CARD-00421</code></div>
+                        <div><strong>Issue Date:</strong> 14 Sep 2026</div>
+                        <div><strong>Expiration:</strong> 14 Aug 2027 (11 Mo Validity)</div>
+                      </div>
+                    </div>
+
+                    <div class="p-2 border rounded bg-white my-auto d-flex align-items-center justify-content-between" style="font-size: 0.68rem;">
+                      <div>
+                        <strong>Institutional Security Protocol</strong>
+                        <div class="text-muted">Encrypted QR Verification Enabled</div>
+                      </div>
+                      <span class="badge bg-success">Active</span>
+                    </div>
+
+                    <div class="border-top pt-1 text-muted" style="font-size: 0.62rem;">
+                      If found, please return to Enterprise Security Operations. Unauthorized use or reproduction is strictly prohibited.
+                    </div>
+                  </div>
+                </div>
+
+                <div class="text-muted small mt-2">
+                  Standard ISO/IEC CR80 Landscape Format &middot; Scaled Preview
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Generate Confirmation Modal -->
+  <div class="modal fade" id="generateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title h6 fw-bold">Confirm ID Card Issuance</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body py-3">
+          <p class="small text-muted mb-3">
+            You are about to issue a new Smart ID card for:
+          </p>
+          <div class="p-3 bg-light rounded border small mb-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Employee:</span>
+              <span class="fw-semibold text-dark">Muhammad Ali (EMP-00123)</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Designation:</span>
+              <span>Technician</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span class="text-muted">Issue Date:</span>
+              <span>14 Sep 2026</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">Expiry Date:</span>
+              <span class="fw-semibold text-primary">14 Aug 2027 (11 Months)</span>
+            </div>
+          </div>
+          <div class="text-muted small">
+            This card will receive unique QR verification credentials immediately upon issuance.
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-sm btn-primary-custom" id="confirmGenerateBtn" onclick="executeGeneration()">
+            <span id="genSpinner" class="spinner-border spinner-border-sm me-1 d-none"></span>
+            <span id="genText">Issue ID Card</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Portal Data Store -->
+  <script src="portal-data.js"></script>
+
+  <script>
+    let genModal;
+    let currentEmployee = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check for employee ID in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const empId = urlParams.get('id') || 'EMP-00123';
+      loadEmployeeDetails(empId);
+    });
+
+    function loadEmployeeDetails(empId) {
+      // Search in PortalData employees or requests
+      const employees = PortalData.getEmployees();
+      currentEmployee = employees.find(e => e.id === empId);
+
+      if (!currentEmployee) {
+        // Check if matching approved request
+        const requests = PortalData.getRequests();
+        const matchedReq = requests.find(r => r.officialEmpId === empId || r.id === empId);
+        if (matchedReq) {
+          currentEmployee = {
+            id: matchedReq.officialEmpId || empId,
+            name: matchedReq.personal.fullName,
+            nameUrdu: matchedReq.personal.fullNameUrdu || '',
+            designation: matchedReq.personal.designation,
+            department: matchedReq.specialRoles.category !== 'None' ? 'Logistics / Fleet' : 'General Operations',
+            phone: matchedReq.contact.mobile,
+            emergencyPhone: matchedReq.contact.emergencyContact1,
+            bloodGroup: matchedReq.personal.bloodGroup,
+            cnic: matchedReq.personal.cnic,
+            photo: matchedReq.personal.photo,
+            status: 'Active'
+          };
+        }
+      }
+
+      if (currentEmployee) {
+        bindEmployeeData(currentEmployee);
+      }
+    }
+
+    function bindEmployeeData(emp) {
+      // Breadcrumb and header
+      const breadcrumbEmp = document.querySelector('.breadcrumb-item:nth-child(2) a');
+      if (breadcrumbEmp) {
+        breadcrumbEmp.textContent = emp.name;
+        breadcrumbEmp.href = `employee-detail.html?id=${emp.id}`;
+      }
+
+      // Left panel info
+      const thumb = document.querySelector('.employee-photo-thumb');
+      if (thumb) {
+        if (emp.photo) {
+          thumb.innerHTML = `<img src="${emp.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+        } else {
+          thumb.textContent = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2);
+        }
+      }
+
+      const nameBox = document.querySelector('.card-box-body .fw-bold.text-dark');
+      if (nameBox) nameBox.textContent = emp.name;
+
+      const subBox = document.querySelector('.card-box-body .text-muted.small');
+      if (subBox) subBox.innerHTML = `${emp.designation} &middot; <code>${emp.id}</code>`;
+
+      // Fields
+      const phoneStrong = document.querySelector('.card-box-body strong:nth-of-type(1)');
+      if (phoneStrong && emp.phone) phoneStrong.textContent = emp.phone;
+
+      const emStrong = document.querySelector('.card-box-body strong.text-danger');
+      if (emStrong && emp.emergencyPhone) emStrong.textContent = emp.emergencyPhone;
+
+      const bloodBadge = document.querySelector('.card-box-body .badge.bg-danger');
+      if (bloodBadge && emp.bloodGroup) bloodBadge.textContent = emp.bloodGroup;
+
+      const cnicSpan = document.querySelector('.card-box-body .font-monospace');
+      if (cnicSpan && emp.cnic) cnicSpan.textContent = emp.cnic;
+
+      // Live Card Preview Front
+      const cardPhoto = document.querySelector('.id-card-photo');
+      if (cardPhoto) {
+        if (emp.photo) {
+          cardPhoto.innerHTML = `<img src="${emp.photo}" style="width: 100%; height: 100%; border-radius: 4px; object-fit: cover;">`;
+        } else {
+          cardPhoto.innerHTML = `<span>${emp.name.split(' ').map(n => n[0]).join('').substring(0, 2)}</span>`;
+        }
+      }
+
+      const cardFrontName = document.querySelector('#cardFrontSide .h5.fw-bold');
+      if (cardFrontName) cardFrontName.textContent = emp.name;
+
+      const cardFrontDesig = document.querySelector('#cardFrontSide .text-muted.small.mb-1');
+      if (cardFrontDesig) cardFrontDesig.textContent = emp.designation;
+
+      const cardFrontId = document.querySelector('#cardFrontSide code');
+      if (cardFrontId) cardFrontId.textContent = emp.id;
+
+      const cardFrontBlood = document.querySelector('#cardFrontSide .badge.bg-danger');
+      if (cardFrontBlood && emp.bloodGroup) cardFrontBlood.textContent = emp.bloodGroup;
+
+      // Live Card Preview Back
+      const backDiv = document.querySelector('#cardBackSide .small');
+      if (backDiv) {
+        backDiv.innerHTML = `
+          <div><strong>Employee Phone:</strong> ${emp.phone || '+92 300 1234567'}</div>
+          <div><strong>Emergency Contact:</strong> ${emp.emergencyPhone || '+92 321 9876543'}</div>
+          <div><strong>Card Reference:</strong> <code id="previewCardNumBack">CARD-00421</code></div>
+          <div><strong>Issue Date:</strong> 16 Sep 2026</div>
+          <div><strong>Expiration:</strong> 16 Aug 2027 (11 Mo Validity)</div>
+        `;
+      }
+
+      // Live Scannable QR Code linking to verification page
+      const origin = window.location.origin || window.location.protocol + '//' + window.location.host;
+      const verifyUrl = origin + '/verify.html?code=' + encodeURIComponent(emp.cardNumber || emp.id || 'CARD-00421');
+      const qrLink = document.getElementById('previewQrLink');
+      const qrImg = document.getElementById('previewQrImg');
+      if (qrLink) qrLink.href = verifyUrl;
+      if (qrImg) qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(verifyUrl);
+    }
+
+    function toggleCardSide(side) {
+      const front = document.getElementById('cardFrontSide');
+      const back = document.getElementById('cardBackSide');
+      const btnF = document.getElementById('btnSideFront');
+      const btnB = document.getElementById('btnSideBack');
+
+      if (side === 'front') {
+        front.classList.remove('d-none');
+        back.classList.add('d-none');
+        btnF.classList.add('active');
+        btnB.classList.remove('active');
+      } else {
+        front.classList.add('d-none');
+        back.classList.remove('d-none');
+        btnF.classList.remove('active');
+        btnB.classList.add('active');
+      }
+    }
+
+    function openGenerateModal() {
+      genModal = new bootstrap.Modal(document.getElementById('generateModal'));
+      genModal.show();
+    }
+
+    function executeGeneration() {
+      const spinner = document.getElementById('genSpinner');
+      const text = document.getElementById('genText');
+      spinner.classList.remove('d-none');
+      text.textContent = 'Generating ID card...';
+
+      setTimeout(function () {
+        spinner.classList.add('d-none');
+        text.textContent = 'Issue ID Card';
+        genModal.hide();
+
+        // Reveal success panel
+        document.getElementById('generateSuccessPanel').classList.remove('d-none');
+        document.getElementById('labelCardNum').innerHTML = '<code class="fw-bold text-dark">CARD-00421</code>';
+        document.getElementById('qrStatusPill').className = 'badge bg-success-subtle text-success me-2';
+        document.getElementById('qrStatusPill').textContent = 'Active & Verified';
+
+        // Disable generation buttons to prevent duplicate
+        document.getElementById('topGenerateBtn').disabled = true;
+        document.getElementById('topGenerateBtn').textContent = 'Card Generated';
+        document.getElementById('bottomGenerateBtn').disabled = true;
+        document.getElementById('bottomGenerateBtn').textContent = 'Card Generated';
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 700);
+    }
+  </script>
+</body>
+</html>
