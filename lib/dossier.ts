@@ -21,8 +21,8 @@ export function validateDossier(data: Dossier, hasPhoto: boolean, language: 'en'
   return errors;
 }
 export function firstInvalidStep(errors: Record<string, unknown>) {return Math.min(...Object.keys(errors).map(key => fieldSteps[key.replace(/^dossier\./,'').split('.')[0]] ?? 1));}
-export function validatePhoto(file: Pick<File, 'type' | 'size'>) {
-  if (!['image/jpeg','image/png','image/webp'].includes(file.type)) return 'Choose a JPEG, PNG or WebP image.';
-  if (file.size > 3 * 1024 * 1024) return 'Photo must be at most 3 MB.';
+export function validatePhoto(file: Pick<File, 'type' | 'size'>, language: 'en'|'ur' = 'en') {
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type)) return language==='ur'?'JPEG، PNG یا WebP تصویر منتخب کریں۔':'Choose a JPEG, PNG or WebP image.';
+  if (file.size > 3 * 1024 * 1024) return language==='ur'?'تصویر ۳ ایم بی سے بڑی نہ ہو۔':'Photo must be at most 3 MB.';
   return '';
 }

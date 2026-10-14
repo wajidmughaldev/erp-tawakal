@@ -50,3 +50,4 @@ export const notificationsApi = {
   clearRead: () => request<void>('/notifications/clear-read', json({})),
 };
 export const dashboardApi = () => request<Result<DashboardSummary>>('/dashboard/summary');
+export const downloadDocument = (id: string) => request<Blob>(`/documents/${key(id)}/download`, {format:'blob'});

@@ -28,11 +28,11 @@ function translation(text:string, language:'en'|'ur') {
 }
 const extraUrdu:Record<string,string> = {'Reset':'واپس کریں','Cancel':'منسوخ کریں','Save Employee':'ملازم محفوظ کریں','Save & Enroll Employee':'ملازم کا اندراج مکمل کریں','Submit Application':'درخواست جمع کریں','Recent Photograph':'حالیہ پاسپورٹ سائز تصویر','Step 1: Personal & Identity Information':'مرحلہ ۱: ذاتی اور شناختی معلومات','Enter employee biographical credentials, CNIC, and designation.':'ملازم کی ذاتی معلومات، شناختی کارڈ اور عہدہ درج کریں۔','Date of Registration':'تاریخ اندراج','Organization':'ادارہ','Designation':'عہدہ','Years / Duration':'سال / مدت','Address / Location':'پتہ / مقام','Phone Number':'فون نمبر','Action':'عمل','Sr #':'نمبر','Full Name':'پورا نام','Relation / Capacity':'رشتہ / حیثیت','Contact Details & Address':'رابطہ اور پتہ','Reference 1 (Primary Guarantor)':'ضامن ۱ (بنیادی)','Reference 2 (Secondary Guarantor)':'ضامن ۲ (متبادل)','Vehicle Registration Number':'گاڑی کا رجسٹریشن نمبر','Driving Licence Number':'ڈرائیونگ لائسنس نمبر','Token Tax Status':'ٹوکن ٹیکس کی حیثیت','Standard Office / Warehouse Staff':'دفتری / گودام کا عملہ','Motorcycle Field Sales Executive':'موٹر سائیکل فیلڈ سیلز ایگزیکٹو','Delivery Van Driver':'ڈلیوری وین ڈرائیور','No vehicle or driving license required for daily duty':'روزانہ ڈیوٹی کے لیے گاڑی یا لائسنس ضروری نہیں','Field sales executive operating company or personal motorbike':'کمپنی یا ذاتی موٹر سائیکل پر فیلڈ سیلز','Pharmaceutical distribution driver for delivery van':'ادویات کی تقسیم کے لیے ڈلیوری وین ڈرائیور','Select Operational Role Category':'آپریشنل شعبہ منتخب کریں','Home Landline Phone (with Area Code)':'گھر کا لینڈ لائن فون','Residential landline if available':'گھر کا فون اگر موجود ہو','e.g. Brother, Father, Spouse with active phone':'بھائی، والد یا شریک حیات کا فعال فون','Secondary emergency phone if available':'متبادل ہنگامی فون اگر موجود ہو','Enter previous employers in reverse chronological order if applicable.':'سابقہ اداروں کو تازہ ترین ملازمت سے شروع کرتے ہوئے درج کریں۔','Provide verifiable contact details for two respectable references':'دو معزز ضامن کی قابل تصدیق معلومات درج کریں۔','Required office inspection copies and legally binding affidavit.':'ضروری دفتری نقول اور قانونی حلف نامہ۔','Confirm receipt and verification of original and photocopy credentials.':'اصل اسناد اور نقول کی وصولی اور تصدیق کریں۔'};
 function T({text}:{text:string}) {return <>{translation(text,useForm().language)}</>;}
-export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'add'|'edit'|'candidate'; employee?:Employee; token?:string; permitted?:{candidateName:string;designation:string}}) {
+export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'add'|'edit'|'candidate'; employee?:Employee; token?:string; permitted?:{candidateName:string;designation:string;roleCategory?:Dossier['roleCategory']}}) {
   const router=useRouter();
   const [step,setStep]=useState(1);
   const [language,setLanguage]=useState<'en'|'ur'>('en');
-  const [data,setData]=useState<Dossier>(()=>employee?.dossier ?? {...blankDossier(),fullName:permitted?.candidateName??'',designation:permitted?.designation??''});
+  const [data,setData]=useState<Dossier>(()=>employee?.dossier ?? {...blankDossier(),fullName:permitted?.candidateName??'',designation:permitted?.designation??'',roleCategory:permitted?.roleCategory??'office'});
   const [errors,setErrors]=useState<Record<string,string>>({});
   const [photo,setPhoto]=useState<File>();
   const [preview,setPreview]=useState(employee?.photo??'');
@@ -43,10 +43,20 @@ export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'a
   const isAdd=mode!=='edit';
   const candidate=mode==='candidate';
   useEffect(()=>{const warn=(e:BeforeUnloadEvent)=>{if(dirty.current){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[]);
-  useEffect(()=>{const click=(event:MouseEvent)=>{const link=(event.target as Element).closest('a');if(link && dirty.current && !window.confirm('Discard unsaved changes?')){event.preventDefault();event.stopPropagation();}};document.addEventListener('click',click,true);return()=>document.removeEventListener('click',click,true);},[]);
+  useEffect(()=>{const click=(event:MouseEvent)=>{const link=(event.target as Element).closest('a');if(link && dirty.current){if(!window.confirm(language==='ur'?'غیر محفوظ تبدیلیاں ختم کریں؟':'Discard unsaved changes?')){event.preventDefault();event.stopPropagation();}else dirty.current=false;}};document.addEventListener('click',click,true);return()=>document.removeEventListener('click',click,true);},[language]);
+  useEffect(()=>{
+    const currentUrl=window.location.href;const currentState=window.history.state;
+    const back=(event:PopStateEvent)=>{
+      if(!dirty.current)return;
+      if(window.confirm(language==='ur'?'غیر محفوظ تبدیلیاں ختم کریں؟':'Discard unsaved changes?')){dirty.current=false;return;}
+      event.stopImmediatePropagation();
+      window.history.pushState(currentState,'',currentUrl);
+    };
+    window.addEventListener('popstate',back,true);return()=>window.removeEventListener('popstate',back,true);
+  },[language]);
   useEffect(()=>{if(!photo){setPreview(employee?.photo??'');return;}const url=URL.createObjectURL(photo);setPreview(url);return()=>URL.revokeObjectURL(url);},[photo,employee?.photo]);
   function update(key:string,value:unknown){dirty.current=true;setData(previous=>({...previous,[key]:value}));}
-  function upload(file?:File){const message=file?validatePhoto(file):'';if(message){setErrors(previous=>({...previous,photo:message}));return;}setErrors(previous=>({...previous,photo:''}));setPhoto(file);dirty.current=true;}
+  function upload(file?:File){const message=file?validatePhoto(file,language):'';if(message){setErrors(previous=>({...previous,photo:message}));return;}setErrors(previous=>({...previous,photo:''}));setPhoto(file);dirty.current=true;}
   function next(){const found=validateDossier(data,Boolean(photo||employee?.photo),language);const current=Object.fromEntries(Object.entries(found).filter(([key])=>fieldSteps[key]===step));setErrors(current);if(!Object.keys(current).length)setStep(value=>value+1);}
   async function submit(){
     if(busy)return;
@@ -59,7 +69,7 @@ export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'a
       if(candidate && !(response.data as EmployeeRequest).trackingId)throw new Error('The server did not return a tracking ID.');
       dirty.current=false;setResult(response.data);
       if(mode==='edit')router.push('/employees/'+encodeURIComponent(response.data.id));
-    }catch(cause){if(cause instanceof ApiError && cause.status===422){const fields=Object.fromEntries(Object.entries(cause.fields).map(([key,value])=>[key.replace(/^dossier\./,''),value.join(' ')]));setErrors(fields);setStep(firstInvalidStep(fields));}setError(cause instanceof Error?cause.message:'Unable to submit.');}
+    }catch(cause){if(cause instanceof ApiError && cause.status===422){const fields:Record<string,string>={};for(const [key,value] of Object.entries(cause.fields)){const field=key.replace(/^dossier\./,'');fields[field]=value.join(' ');if(field.startsWith('primaryReference.'))fields.primaryReference=value.join(' ');}setErrors(fields);setStep(firstInvalidStep(fields));}setError(cause instanceof Error?cause.message:'Unable to submit.');}
     finally{setBusy(false);}
   }
   const translatedSteps=language==='en'?steps:[formTranslations.ur.step1,formTranslations.ur.step2,formTranslations.ur.step3,formTranslations.ur.step4,formTranslations.ur.step5];
@@ -70,13 +80,13 @@ export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'a
         <div className="text-[12px] text-slate-600">
           {!candidate && <Link href="/employees" className="hover:text-blue-700">Employees</Link>}
           <span className="mx-2">/</span>
-          <span className="font-semibold text-slate-950">{isAdd ? 'Add Employee Form' : 'Edit Employee Form'}</span>
+          <span className="font-semibold text-slate-950">{language==='ur'?'ملازم کا فارم':candidate?'Candidate Application':isAdd?'Add Employee Form':'Edit Employee Form'}</span>
         </div>
         <div className="flex flex-wrap gap-2">
 
           <button className="h-8 rounded-md border border-blue-600 px-3 text-[11px] text-blue-700" type="button" onClick={()=>setLanguage(value=>value==='en'?'ur':'en')}>{formTranslations[language].switchLabel}</button>
           <Link href={candidate?'/login':'/employees'} className="inline-flex h-8 items-center rounded-md border border-slate-500 px-3 text-[11px] text-slate-700 hover:bg-slate-50"><T text="Cancel" /></Link>
-          <button className="h-8 rounded-md bg-[#123b6d] px-4 text-[11px] font-medium text-white hover:bg-[#0d2f58]" type="button" disabled={busy} onClick={()=>void submit()}>{busy?'Saving…':translation(candidate?'Submit Application':'Save & Enroll Employee',language)}</button>
+          <button className="h-8 rounded-md bg-[#123b6d] px-4 text-[11px] font-medium text-white hover:bg-[#0d2f58]" type="button" disabled={busy} onClick={()=>void submit()}>{busy?(language==='ur'?'محفوظ ہو رہا ہے…':'Saving…'):translation(candidate?'Submit Application':'Save & Enroll Employee',language)}</button>
         </div>
       </div>
 
@@ -89,7 +99,7 @@ export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'a
             </div>
             <p className="mt-2 text-[11px] text-slate-600">{formTranslations[language].mainSubheading}</p>
           </div>
-          <span className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[10px] text-slate-700">Step {step} of 5</span>
+          <span className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[10px] text-slate-700">{language==='ur'?'مرحلہ':'Step'} {step} {language==='ur'?'از':'of'} 5</span>
         </div>
 
         {error && <div role="alert" className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
@@ -145,8 +155,8 @@ export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'a
       </div>
 
       <div className={`fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white px-5 py-3 ${candidate ? '' : 'lg:left-[250px]'}`}>
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] text-slate-700">Editing: Step {step} of 5 ({steps[step - 1].replace(/^\d+\.\s*/, '')})</span>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-[11px] text-slate-700">{language==='ur'?'مرحلہ':'Editing: Step'} {step} / 5 ({translatedSteps[step-1]})</span>
           <div className="flex gap-2">
             <Link href={candidate?'/login':'/employees'} className="inline-flex h-8 items-center rounded-md border border-slate-500 px-3 text-[11px] text-slate-700"><T text="Cancel" /></Link>
             <button className="h-8 rounded-md bg-[#123b6d] px-4 text-[11px] font-medium text-white" type="button" disabled={busy} onClick={()=>void submit()}>{translation(candidate?'Submit Application':'Save Employee',language)}</button>
@@ -164,13 +174,13 @@ function StepHeader({title, text, page}: {title: string; text: string; page: str
         <h2 className="text-[15px] font-semibold"><T text={title} /></h2>
         <p className="mt-1 text-[10px] text-slate-600"><T text={text} /></p>
       </div>
-      <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700">{page}</span>
+      <span className="rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-700">{useForm().language==='ur'?page.replace('Page','صفحہ').replace('of','از'):page}</span>
     </div>
   );
 }
 
 function StepOne() {
-  const {preview,upload,errors}=useForm();
+  const {preview,upload,errors,language}=useForm();
   const input=useRef<HTMLInputElement>(null);
   return (
     <>
@@ -178,10 +188,10 @@ function StepOne() {
       <Panel>
         <div className="grid gap-5 lg:grid-cols-[240px_1fr_1fr]">
           <div className="text-center">
-            <Label>Recent Photograph <Required /></Label>
+            <Label><T text="Recent Photograph" /> <Required /></Label>
             <p className="mt-2 text-[10px] text-slate-600"><T text="Passport size photograph with Blue or White background"/></p>
             <div className="mx-auto mt-3 h-28 w-24 overflow-hidden rounded-md bg-slate-200">
-              {preview ? <img src={preview} alt="Employee photo preview" className="h-full w-full object-cover" /> : <span className="text-xs text-slate-500">No photo</span>}
+              {preview ? <img src={preview} alt="Employee photo preview" className="h-full w-full object-cover" /> : <span className="text-xs text-slate-500">{language==='ur'?'تصویر موجود نہیں':'No photo'}</span>}
             </div>
             <div className="mt-3 flex justify-center gap-2">
               <button className="inline-flex h-7 items-center gap-1 rounded-md border border-blue-600 px-2 text-[10px] text-blue-700" type="button" onClick={()=>input.current?.click()}><Upload size={12} /><T text="Upload Photo" /></button>
@@ -256,8 +266,8 @@ function StepThree() {
         <p className="mt-2 text-[10px] text-slate-600"><T text="Provide verifiable contact details for two respectable references"/></p>
         {errors.primaryReference && <p role="alert" className="text-xs text-red-600">{errors.primaryReference}</p>}
         <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <ReferenceBlock title="Reference 1 (Primary Guarantor)" name="Haji Noman Memon" relation="Former Branch Manager" contact="+923009876543, Saddar Hyderabad" required />
-          <ReferenceBlock title="Reference 2 (Secondary Guarantor)" name="Dr. Salman Qazi" relation="Family Physician" contact="+92321 8765432, Latifabad" />
+          <ReferenceBlock title="Reference 1 (Primary Guarantor)" required />
+          <ReferenceBlock title="Reference 2 (Secondary Guarantor)" />
         </div>
       </Panel>
     </>
