@@ -1,0 +1,9 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {blankDossier, validateDossier, validatePhoto, firstInvalidStep} from './dossier';
+import {dossierBody} from './services';
+test('empty form validates every step and selects first invalid step',()=>{const errors=validateDossier(blankDossier(),false);assert.equal(firstInvalidStep(errors),1);assert.ok(errors.primaryReference);assert.ok(errors.signature);assert.ok(errors.declarationAccepted);});
+test('driver fields apply only to vehicle roles; stale vehicle fields excluded from payload',()=>{const data=blankDossier();assert.equal(validateDossier(data,true).drivingLicence,undefined);data.roleCategory='van';assert.ok(validateDossier(data,true).drivingLicence);data.roleCategory='office';data.drivingLicence='stale';assert.equal(JSON.parse(String(dossierBody(data).get('dossier'))).drivingLicence,'');});
+test('photo type and 3MB limit',()=>{assert.ok(validatePhoto({type:'image/gif',size:1}));assert.ok(validatePhoto({type:'image/png',size:3*1024*1024+1}));assert.equal(validatePhoto({type:'image/webp',size:1000}),'');});
+test('CNIC, dependents and both languages validate',()=>{const data=blankDossier();data.cnic='123';data.dependents=-1;assert.match(validateDossier(data,true).cnic,/13-digit/);assert.ok(validateDossier(data,true,'ur').dependents);});
+test('blank employers excluded, meaningful rows preserved',()=>{const data=blankDossier();data.employers=[{rowId:'1',organization:'',designation:'',duration:'',address:'',phone:''},{rowId:'2',organization:'Company',designation:'',duration:'',address:'',phone:''}];assert.equal(JSON.parse(String(dossierBody(data).get('dossier'))).employers.length,1);});
