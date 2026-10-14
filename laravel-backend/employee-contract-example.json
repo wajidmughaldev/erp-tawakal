@@ -1,0 +1,105 @@
+{
+  "note": "Documentation example only; not application data, a seeded record, or a real person.",
+  "create": {
+    "method": "POST",
+    "path": "/api/v1/employees",
+    "contentType": "multipart/form-data",
+    "fields": {
+      "dossier": "{\"fullName\":\"Example Employee\",\"fatherName\":\"Example Guardian\",\"designation\":\"Sales Representative\",\"joiningDate\":\"2026-01-10\",\"dateOfBirth\":\"1990-03-15\",\"gender\":\"Male\",\"maritalStatus\":\"Married\",\"dependents\":2,\"bloodGroup\":\"O+\",\"cnic\":\"12345-1234567-1\",\"cnicExpiry\":\"2030-03-15\",\"residentialAddress\":\"Example residential address\",\"homePhone\":\"\",\"mobileNumber\":\"+92 300 1234567\",\"emergencyContact1\":\"Example emergency contact\",\"emergencyContact2\":\"\",\"employers\":[{\"rowId\":\"frontend-row-1\",\"organization\":\"Previous example employer\",\"designation\":\"Assistant\",\"duration\":\"2 years\",\"address\":\"Example workplace\",\"phone\":\"\"}],\"primaryReference\":{\"name\":\"Example primary reference\",\"relation\":\"Former supervisor\",\"contact\":\"Example reference contact\"},\"secondaryReference\":{\"name\":\"\",\"relation\":\"\",\"contact\":\"\"},\"roleCategory\":\"motorcycle\",\"vehicleRegistration\":\"EXAMPLE-123\",\"drivingLicence\":\"EXAMPLE-LICENCE\",\"tokenTaxStatus\":\"Not Provided\",\"checklist\":{\"cnic\":true,\"bloodReport\":false,\"photographs\":true,\"utilityBill\":false},\"declarationAccepted\":true,\"signature\":\"Example Employee\",\"signingDate\":\"2026-01-10\"}",
+      "photo": "Optional JPEG, PNG or WebP binary file, maximum 3 MB"
+    }
+  },
+  "response": {
+    "status": 201,
+    "headers": {
+      "ETag": "\"employee-42-v1\""
+    },
+    "body": {
+      "data": {
+        "id": "42",
+        "displayId": "EMP-2026-0042",
+        "name": "Example Employee",
+        "designation": "Sales Representative",
+        "department": "",
+        "phone": "+92 300 1234567",
+        "status": "active",
+        "dossier": {
+          "fullName": "Example Employee",
+          "fatherName": "Example Guardian",
+          "designation": "Sales Representative",
+          "joiningDate": "2026-01-10",
+          "dateOfBirth": "1990-03-15",
+          "gender": "Male",
+          "maritalStatus": "Married",
+          "dependents": 2,
+          "bloodGroup": "O+",
+          "cnic": "12345-1234567-1",
+          "cnicExpiry": "2030-03-15",
+          "residentialAddress": "Example residential address",
+          "homePhone": "",
+          "mobileNumber": "+92 300 1234567",
+          "emergencyContact1": "Example emergency contact",
+          "emergencyContact2": "",
+          "employers": [
+            {
+              "rowId": "frontend-row-1",
+              "organization": "Previous example employer",
+              "designation": "Assistant",
+              "duration": "2 years",
+              "address": "Example workplace",
+              "phone": ""
+            }
+          ],
+          "primaryReference": {
+            "name": "Example primary reference",
+            "relation": "Former supervisor",
+            "contact": "Example reference contact"
+          },
+          "secondaryReference": {
+            "name": "",
+            "relation": "",
+            "contact": ""
+          },
+          "roleCategory": "motorcycle",
+          "vehicleRegistration": "EXAMPLE-123",
+          "drivingLicence": "EXAMPLE-LICENCE",
+          "tokenTaxStatus": "Not Provided",
+          "checklist": {
+            "cnic": true,
+            "bloodReport": false,
+            "photographs": true,
+            "utilityBill": false
+          },
+          "declarationAccepted": true,
+          "signature": "Example Employee",
+          "signingDate": "2026-01-10"
+        },
+        "documents": [],
+        "history": [],
+        "cards": []
+      }
+    }
+  },
+  "update": {
+    "method": "POST",
+    "path": "/api/v1/employees/42",
+    "headers": {
+      "If-Match": "\"employee-42-v1\""
+    },
+    "contentType": "multipart/form-data",
+    "fields": {
+      "_method": "PATCH",
+      "dossier": "JSON.stringify(the complete edited dossier)",
+      "photo": "Omit to retain the existing photograph; send a new file to replace it"
+    }
+  },
+  "alternativeUpdate": {
+    "method": "PATCH",
+    "body": {
+      "dossier": "JSON.stringify(the complete edited dossier)"
+    },
+    "headers": {
+      "If-Match": "\"employee-42-v1\""
+    }
+  }
+}

@@ -62,7 +62,7 @@ try {
     $me = $request('GET', '/api/v1/auth/me');
     $expect($me[0], 200, 'Session persistence');
     $expect($me[1]['data']['id'], (string) $user->id, 'Authenticated identity');
-    $expect($request('GET', '/api/v1/employees')[0], 503, 'Authenticated deferred endpoint');
+    $expect($request('GET', '/api/v1/id-cards')[0], 503, 'Authenticated deferred endpoint');
     $expect($request('POST', '/api/v1/auth/logout', [], false)[0], 419, 'Logout CSRF');
     $expect($request('POST', '/api/v1/auth/logout', [])[0], 204, 'Logout');
     $expect($request('GET', '/api/v1/auth/me')[0], 401, 'Session removed after logout');

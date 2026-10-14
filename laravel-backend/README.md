@@ -1,3 +1,5 @@
+Latest implementation: [Checkpoint 2 employee backend report](employee-management-report.md). The following report records the Checkpoint 1 baseline.
+
 # Backend checkpoint 1: foundation and authentication
 
 Branch: feat/laravel-backend-foundation, based on fix/nextjs-frontend-parity at 4cf4cc373d464170fe11275867263f0f801af77a. All changes are confined to laravel-backend/. No frontend, HTML, legacy Vite, UI, merge or deployment changes.

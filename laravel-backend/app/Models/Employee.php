@@ -2,39 +2,41 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Employee extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
 
-    protected $fillable = [
-        'employee_id',
-        'first_name',
-        'last_name',
-        'email',
-        'phone',
-        'emergency_phone',
-        'department',
-        'designation',
-        'blood_group',
-        'joining_date',
-        'address',
-        'photo_url',
-        'status',
-    ];
+    public const STATUSES = ['active', 'inactive', 'transferred', 'resigned'];
 
-    protected $appends = ['full_name'];
+    protected $fillable = ['employee_id', 'full_name', 'designation', 'joining_date', 'phone', 'dossier', 'cnic_lookup', 'photo_path', 'status'];
 
-    public function getFullNameAttribute()
+    protected $hidden = ['dossier', 'cnic_lookup', 'photo_path', 'photo_url', 'email', 'phone', 'address', 'emergency_phone'];
+
+    protected function casts(): array
     {
-        return "{$this->first_name} {$this->last_name}";
+        return ['dossier' => 'encrypted:array', 'phone' => 'encrypted', 'joining_date' => 'date', 'revision' => 'integer'];
     }
 
     public function idCard()
     {
         return $this->hasOne(IdCard::class);
+    }
+
+    public function cards()
+    {
+        return $this->hasMany(IdCard::class);
+    }
+
+    public function documents()
+    {
+        return $this->hasMany(EmployeeDocument::class);
+    }
+
+    public function etag(): string
+    {
+        return '"employee-'.$this->id.'-v'.$this->revision.'"';
     }
 }
