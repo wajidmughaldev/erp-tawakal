@@ -41,4 +41,19 @@ h6 {
   .no-print {
     display: none !important;
   }
+  body:has(.print-cards) {background:white;}
+  body:has(.print-cards) *:not(:has(.print-cards)):not(.print-cards):not(.print-cards *) {display:none !important;}
+  body:has(.print-cards) *:has(.print-cards) {display:block !important; min-height:0 !important; height:auto !important; margin:0 !important; padding:0 !important; border:0 !important; background:transparent !important; box-shadow:none !important;}
+  body:has(.print-cards) * { visibility: hidden; }
+  body:has(.print-cards) .print-cards,
+  body:has(.print-cards) .print-cards * { visibility: visible; }
+  .print-cards { position: static; margin: 0; padding: 0; width: 85.6mm; }
+  .id-card-face { box-sizing: border-box; width: 85.6mm; height: 54mm; margin-bottom: 5mm; overflow: hidden; break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; padding: 3mm; font-size: 8pt; }
+  .id-card-face h2 { font-size: 11pt; }
+  .id-card-face p, .id-card-face div { font-size: 8pt; }
+  .id-card-face .mt-5 { margin-top: 3mm; }
+  .id-card-face .mt-3 { margin-top: 2mm; }
+  .id-card-face img { width: 20mm; height: 20mm; }
 }
+
+[lang="ur"] {font-family: "Noto Nastaliq Urdu", "Noto Naskh Arabic", "Segoe UI", serif;}

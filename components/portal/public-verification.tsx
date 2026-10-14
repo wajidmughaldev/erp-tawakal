@@ -1,0 +1,24 @@
+'use client';
+import {useEffect, useRef, useState} from 'react';
+import Link from 'next/link';
+import {useSearchParams} from 'next/navigation';
+import type {IScannerControls} from '@zxing/browser';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {cardsApi} from '@/lib/services';
+import type {PublicVerification} from '@/lib/contracts';
+import {verificationToken, cameraError} from '@/lib/verification';
+import {VerificationResult} from './verification-result';
+export function PublicVerificationPage({scanner=false}:{scanner?:boolean}) {
+  const params=useSearchParams();
+  const [query,setQuery]=useState(params.get('token')??params.get('code')??'');
+  const [result,setResult]=useState<PublicVerification>();const [error,setError]=useState('');const [busy,setBusy]=useState(false);
+  const [scanning,setScanning]=useState(false);const [starting,setStarting]=useState(false);
+  const video=useRef<HTMLVideoElement>(null);const controls=useRef<IScannerControls | undefined>(undefined);const stream=useRef<MediaStream | undefined>(undefined);const generation=useRef(0);const verifying=useRef(false);
+  function stop(){generation.current++;controls.current?.stop();controls.current=undefined;stream.current?.getTracks().forEach(track=>track.stop());stream.current=undefined;if(video.current)video.current.srcObject=null;setScanning(false);setStarting(false);}
+  useEffect(()=>()=>{generation.current++;controls.current?.stop();stream.current?.getTracks().forEach(track=>track.stop());},[]);
+  async function verify(value=query){if(verifying.current)return;verifying.current=true;setError('');setResult(undefined);setBusy(true);try{const token=verificationToken(value,window.location.origin);setQuery(token);setResult(await cardsApi.verify(token));}catch(cause){setError(cause instanceof Error?cause.message:'Unable to verify credential.');}finally{verifying.current=false;setBusy(false);}}
+  useEffect(()=>{if(query)void verify(query);},[]);
+  async function start(){if(starting||scanning)return;setStarting(true);setError('');const current=++generation.current;try{if(!navigator.mediaDevices?.getUserMedia)throw new Error('Camera unavailable');const media=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});if(current!==generation.current){media.getTracks().forEach(track=>track.stop());return;}stream.current=media;const {BrowserQRCodeReader}=await import('@zxing/browser');if(current!==generation.current){media.getTracks().forEach(track=>track.stop());return;}const reader=new BrowserQRCodeReader();const scan=await reader.decodeFromStream(media,video.current!, (decoded,_error,scannerControls)=>{if(decoded && current===generation.current){scannerControls.stop();stop();void verify(decoded.getText());}});if(current!==generation.current){scan.stop();media.getTracks().forEach(track=>track.stop());return;}controls.current=scan;setScanning(true);}catch(cause){if(current===generation.current){stop();setError(cameraError(cause));}}finally{if(current===generation.current)setStarting(false);}}
+  return <main className="min-h-screen bg-slate-50 p-4 lg:p-8"><div className="mx-auto max-w-5xl"><div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-semibold">{scanner?'Public QR Scanner':'Credential Verification'}</h1><p className="text-sm text-slate-500">Public QR and manual card validation portal.</p></div><div className="flex gap-2"><Link href={scanner?'/verify':'/scan'} className="rounded-md border bg-white px-3 py-2 text-sm">{scanner?'Manual Verification':'Camera Scanner'}</Link><Link href="/login" className="rounded-md border bg-white px-3 py-2 text-sm">Admin Login</Link></div></div>{scanner&&<section className="mb-5 rounded-lg border bg-white p-4"><video ref={video} playsInline muted className="max-h-80 w-full rounded bg-slate-950"/><div className="mt-3 flex gap-2"><Button disabled={starting||scanning} onClick={()=>void start()}>{starting?'Requesting camera…':'Start Scanner'}</Button><Button variant="outline" disabled={!starting&&!scanning} onClick={stop}>Stop Scanner</Button></div><p className="mt-2 text-xs text-slate-500">Camera access starts only when you choose Start Scanner.</p></section>}<form className="flex flex-col gap-2 rounded-lg border bg-white p-4 sm:flex-row" onSubmit={event=>{event.preventDefault();void verify();}}><Input aria-label="Verification token or URL" value={query} maxLength={2048} onChange={event=>setQuery(event.target.value)} placeholder="Enter verification token or portal verification URL"/><Button disabled={busy}>{busy?'Verifying…':'Verify'}</Button></form>{error&&<p role="alert" className="mt-4 rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}{result&&<VerificationResult result={result}/>}</div></main>;
+}

@@ -1,67 +1,21 @@
 'use client';
-
 import Link from 'next/link';
 import {useParams} from 'next/navigation';
-import {QrCode} from 'lucide-react';
+import {useState} from 'react';
 import {PortalShell} from '@/components/portal/portal-shell';
 import {PageHeader} from '@/components/portal/page-header';
-import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
-import {Card, CardContent} from '@/components/ui/card';
-import {badgeTone, cards} from '@/lib/portal-data';
-
-export default function CardDetailPage() {
-  const params = useParams<{card: string}>();
-  const card = cards.find((item) => item.card === params.card) ?? cards[0];
-
-  return (
-    <PortalShell>
-      <PageHeader title={card.card} description="Official smart ID credential detail" action={<Button type="button" variant="outline" onClick={() => window.print()}>Print Card</Button>} />
-      <div className="grid gap-5 xl:grid-cols-[390px_1fr]">
-        <Card>
-          <CardContent>
-            <div className="rounded-xl bg-[var(--brand-dark)] p-5 text-white">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold">Tawakkal Enterprises</span>
-                <Badge tone={badgeTone(card.status)}>{card.status}</Badge>
-              </div>
-              <div className="mt-5 flex gap-4">
-                <img src={card.photo} alt="" className="size-24 rounded-lg object-cover" />
-                <div>
-                  <h2 className="text-xl font-semibold">{card.empName}</h2>
-                  <p className="text-sm text-white/70">{card.designation}</p>
-                  <p className="mt-3 font-mono text-sm text-[var(--brand-gold)]">{card.card}</p>
-                </div>
-              </div>
-              <div className="mt-5 grid grid-cols-2 gap-3 text-sm text-white/75">
-                <div>Blood: <strong className="text-white">{card.bloodGroup}</strong></div>
-                <div>Expiry: <strong className="text-white">{card.expiryDate}</strong></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            {[
-              ['Employee ID', card.empId],
-              ['Department', card.department],
-              ['CNIC', card.nic],
-              ['Issued By', card.issuedBy],
-              ['Issue Date', card.issueDate],
-              ['Security Hash', card.securityHash],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-md border border-slate-100 p-3">
-                <div className="text-xs font-medium uppercase text-slate-500">{label}</div>
-                <div className="mt-1 text-sm">{value}</div>
-              </div>
-            ))}
-            <div className="rounded-md border border-slate-100 p-3 md:col-span-2">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold"><QrCode size={18} /> Verification URL</div>
-              <Link className="break-all text-sm text-[var(--brand-deep)]" href={`/verify?code=${card.card}`}>/verify?code={card.card}</Link>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </PortalShell>
-  );
+import {Card,CardContent} from '@/components/ui/card';
+import {Dialog} from '@/components/ui/dialog';
+import {DataState} from '@/components/portal/data-state';
+import {IdCardPreview} from '@/components/portal/id-card-preview';
+import {cardsApi} from '@/lib/services';
+import {useResource} from '@/lib/use-resource';
+import {cardLabel} from '@/lib/contracts';
+export default function CardDetailPage(){
+ const id=useParams<{card:string}>().card;
+ const state=useResource(()=>cardsApi.get(id),[id]);const card=state.data?.data;
+ const [deactivate,setDeactivate]=useState(false);const [reason,setReason]=useState('');const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+ async function submit(event:React.FormEvent){event.preventDefault();if(busy||!reason.trim())return;setBusy(true);setError('');try{const result=await cardsApi.deactivate(id,reason.trim());if(!result.data?.id||result.data.status!=='revoked')throw new Error('The server did not confirm deactivation.');setDeactivate(false);state.refetch();}catch(cause){setError(cause instanceof Error?cause.message:'Unable to deactivate.');}finally{setBusy(false);}}
+ return <PortalShell><DataState {...state} retry={state.refetch}/>{card&&<><PageHeader title={card.number} description="Official smart ID credential detail" action={<Button variant="outline" onClick={()=>window.print()}>Print Card</Button>}/><div className="grid gap-5 xl:grid-cols-[390px_1fr]"><Card><CardContent><IdCardPreview card={card}/></CardContent></Card><Card><CardContent className="grid gap-4 md:grid-cols-2">{[['Employee ID',card.employee.displayId],['Department',card.employee.department],['Issued By',card.issuedBy],['Issue Date',card.issueDate],['Expiry Date',card.expiryDate],['Status',cardLabel(card)]].map(([label,value])=><div key={label} className="rounded-md border border-slate-100 p-3"><div className="text-xs uppercase text-slate-500">{label}</div><div className="mt-1 text-sm">{value}</div></div>)}<div className="flex flex-wrap gap-3 md:col-span-2"><Link href={'/employees/'+encodeURIComponent(card.employeeId)} className="text-sm text-blue-700">Employee</Link>{card.status==='active'&&<><Link href={'/renew-card?card='+encodeURIComponent(card.id)} className="text-sm text-blue-700">Renew</Link><Link href={'/reissue-card?card='+encodeURIComponent(card.id)} className="text-sm text-blue-700">Reissue</Link><Button variant="danger" onClick={()=>setDeactivate(true)}>Deactivate</Button></>}</div></CardContent></Card></div></>}{deactivate&&<Dialog open title="Confirm Card Deactivation" onClose={()=>{if(!busy)setDeactivate(false);}}><form onSubmit={submit} className="space-y-4"><p className="text-sm">Deactivate {card?.number}? This credential will no longer verify as active.</p><label className="block text-sm">Reason<textarea required className="mt-2 w-full rounded border p-2" value={reason} onChange={event=>setReason(event.target.value)}/></label>{error&&<p role="alert" className="text-sm text-red-600">{error}</p>}<Button variant="danger" disabled={busy}>{busy?'Deactivating…':'Confirm Deactivation'}</Button></form></Dialog>}</PortalShell>;
 }

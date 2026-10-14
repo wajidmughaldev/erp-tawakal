@@ -1,44 +1,19 @@
 'use client';
-
-import {useState} from 'react';
+import {Suspense,useState} from 'react';
 import Link from 'next/link';
+import {useSearchParams} from 'next/navigation';
 import {PortalShell} from '@/components/portal/portal-shell';
 import {PageHeader} from '@/components/portal/page-header';
 import {Button} from '@/components/ui/button';
-import {Card, CardContent} from '@/components/ui/card';
-import {cards} from '@/lib/portal-data';
-
-export function CardActionForm({type}: {type: 'renew' | 'reissue'}) {
-  const [done, setDone] = useState(false);
-  const card = cards[0];
-  const isRenew = type === 'renew';
-
-  return (
-    <PortalShell>
-      <PageHeader title={isRenew ? 'Renew Card' : 'Reissue Card'} description={isRenew ? 'Extend credential validity while preserving holder record.' : 'Deactivate old credential and issue a replacement card.'} />
-      <Card>
-        <CardContent className="space-y-4">
-          <div className="rounded-md bg-slate-50 p-4 text-sm">
-            <div className="font-semibold">{card.card} · {card.empName}</div>
-            <div className="text-slate-500">{card.designation} · Current expiry {card.expiryDate}</div>
-          </div>
-          {isRenew ? (
-            <label className="block text-sm font-medium text-slate-600">Renewal Type<select className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm"><option>Renew existing card</option><option>Renew and print new physical card</option></select></label>
-          ) : (
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" required /> I acknowledge the previous card will be deactivated.</label>
-          )}
-          <Button type="button" variant={isRenew ? 'default' : 'danger'} onClick={() => setDone(true)}>{isRenew ? 'Confirm Renewal' : 'Confirm Reissue'}</Button>
-          {done ? (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
-              {isRenew ? 'Card renewed successfully.' : 'Replacement card issued successfully.'}
-              <div className="mt-3 flex gap-2">
-                <Link href={`/id-cards/${card.card}`} className="rounded-md bg-emerald-600 px-3 py-2 text-white">View ID Card</Link>
-                <button className="rounded-md border border-emerald-300 px-3 py-2" onClick={() => window.print()}>Print Card</button>
-              </div>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-    </PortalShell>
-  );
+import {Card,CardContent} from '@/components/ui/card';
+import {cardsApi} from '@/lib/services';
+import {useResource} from '@/lib/use-resource';
+import {DataState} from './data-state';
+import type {IDCard} from '@/lib/contracts';
+function ActionContent({type}:{type:'renew'|'reissue'}){
+ const id=useSearchParams().get('card')??'';const state=useResource(()=>id?cardsApi.get(id):Promise.reject(new Error('Select a card from its details page.')),[id]);
+ const card=state.data?.data;const [result,setResult]=useState<IDCard>();const [option,setOption]=useState<'existing'|'new_physical'>('existing');const [reason,setReason]=useState('');const [acknowledged,setAcknowledged]=useState(false);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const isRenew=type==='renew';
+ async function submit(event:React.FormEvent){event.preventDefault();if(busy||!card||card.status!=='active')return;if(!isRenew&&(!reason.trim()||!acknowledged)){setError('Provide a reason and acknowledge deactivation.');return;}if(!window.confirm((isRenew?'Renew ':'Deactivate and reissue ')+card.number+'?'))return;setBusy(true);setError('');try{const response=isRenew?await cardsApi.renew(card.id,option):await cardsApi.reissue(card.id,reason.trim(),acknowledged);if(!response.data?.id||!response.data.number)throw new Error('The server did not confirm the resulting card.');if(!isRenew&&response.data.id===card.id)throw new Error('Reissue must return a new credential.');setResult(response.data);state.refetch();}catch(cause){setError(cause instanceof Error?cause.message:'Unable to complete card action.');}finally{setBusy(false);}}
+ return <PortalShell><PageHeader title={isRenew?'Renew Card':'Reissue Card'} description={isRenew?'Extend credential validity while preserving holder record.':'Deactivate old credential and issue a replacement card.'}/><DataState {...state} retry={state.refetch}/>{card&&<Card><CardContent className="space-y-4"><div className="rounded-md bg-slate-50 p-4 text-sm"><div className="font-semibold">{card.number} · {card.employee.name}</div><div className="text-slate-500">{card.employee.designation} · Current expiry {card.expiryDate}</div></div>{card.status!=='active'&&!result?<p role="alert" className="text-sm">This card is inactive. Lifecycle actions are unavailable.</p>:!result&&<form onSubmit={submit} className="space-y-4">{isRenew?<label className="block text-sm font-medium text-slate-600">Renewal Type<select className="mt-1 h-10 w-full rounded-md border border-slate-300 px-3 text-sm" value={option} onChange={event=>setOption(event.target.value as typeof option)}><option value="existing">Renew existing card</option><option value="new_physical">Renew and print new physical card</option></select></label>:<><label className="block text-sm">Reissue Reason<select required className="mt-1 h-10 w-full rounded border px-3" value={reason} onChange={event=>setReason(event.target.value)}><option value="">Select reason</option><option>Lost / Stolen Card</option><option>Damaged Card</option><option>Updated Information</option><option>Other</option></select></label><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={acknowledged} onChange={event=>setAcknowledged(event.target.checked)} required/>I acknowledge the previous card will be deactivated.</label></>}<Button disabled={busy} variant={isRenew?'default':'danger'}>{busy?'Processing…':isRenew?'Confirm Renewal':'Confirm Reissue'}</Button></form>}{result&&<div role="status" className="rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{isRenew?'Card renewed: ':'Replacement issued: '}{result.number} · Expiry {result.expiryDate}<div className="mt-3 flex gap-2"><Link href={'/id-cards/'+encodeURIComponent(result.id)} className="rounded-md bg-emerald-600 px-3 py-2 text-white">View / Print ID Card</Link><Link href={'/employees/'+encodeURIComponent(result.employeeId)} className="px-3 py-2 text-blue-700">Employee / Card History</Link></div></div>}{error&&<p role="alert" className="text-sm text-red-600">{error}</p>}</CardContent></Card>}</PortalShell>;
 }
+export function CardActionForm({type}:{type:'renew'|'reissue'}){return <Suspense><ActionContent type={type}/></Suspense>;}
