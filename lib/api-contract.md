@@ -21,3 +21,26 @@ Errors: 401 clears client session; 403 denied; 404 missing; 409 conflict; 419 CS
 Unresolved production rules: card validity (11 months vs 1/2 years) requires agreement before production issuance; frontend submits the current 1/2-year selection but server owns dates. Public verification is restricted to the safe model. Enrollment email is absent from the approved form and must not be invented to satisfy the legacy backend. Declaration wording must remain sourced from the approved legacy reference.
 
 Dashboard includes activeCards/revokedCards separately from employee totals. Card status filters expiring_soon/expired are date predicates, replaced/revoked are backend states. Current card is the latest issued active backend credential; historical cards are never substituted for missing current credentials. Form photo uploads are optional on update and retain the stored original unless replaced.
+
+## Legacy dossier mapping
+
+| Approved HTML data | Canonical frontend payload |
+|---|---|
+| personal.fullName/fatherName/designation/joiningDate | fullName/fatherName/designation/joiningDate |
+| personal.dob | dateOfBirth |
+| personal.gender/maritalStatus/dependents/bloodGroup/cnic/cnicExpiry | gender/maritalStatus/dependents/bloodGroup/cnic/cnicExpiry |
+| personal.photo | multipart photo file; existing photo URL remains response metadata |
+| contact.address/homePhone/mobile | residentialAddress/homePhone/mobileNumber |
+| contact.emergencyContact1/emergencyContact2 (HTML emergency1/emergency2) | emergencyContact1/emergencyContact2 |
+| previousEmployment | employers (organization, designation, duration, address, phone); rowId is UI only |
+| references[0]/references[1] | primaryReference/secondaryReference (name, relation, contact) |
+| specialRoles.category | roleCategory (office, motorcycle, van); labels/Urdu never change values |
+| specialRoles.vehicleRegNumber/licenseNumber | vehicleRegistration/drivingLicence |
+| specialRoles.tokenTaxPaid (candidate tokenTaxStatus) | tokenTaxStatus |
+| checklist.cnicCopy/bloodGroupReport/utilityBillCopy | checklist.cnic/bloodReport/utilityBill |
+| checklist.photosCount (4 or 0) | checklist.photographs boolean; verification only, not uploaded file count |
+| declaration.solemnAffirmed/applicantSignature/declarationDate | declarationAccepted/signature/signingDate |
+
+Read-only metadata is not resubmitted as a file. Laravel must retain existing documents and photo during updates unless a replacement file is explicitly supplied. No email or fake attachment is invented.
+
+References: [Laravel Sanctum SPA authentication](https://laravel.com/docs/12.x/sanctum), [ZXing browser API](https://github.com/zxing-js/browser), [local QR generator](https://github.com/soldair/node-qrcode), [Navigation API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation/navigate_event).
