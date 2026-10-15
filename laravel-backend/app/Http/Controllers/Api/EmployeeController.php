@@ -7,6 +7,7 @@ use App\Http\Requests\EmployeeRequest;
 use App\Http\Resources\EmployeeResource;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
+use App\Services\EmployeeEnrollment;
 use App\Support\EmployeeFiles;
 use App\Support\EmployeeIdentity;
 use Illuminate\Database\QueryException;
@@ -51,29 +52,7 @@ class EmployeeController extends Controller
         $newPath = null;
         try {
             $employee = DB::transaction(function () use ($request, &$newPath) {
-                $dossier = $request->dossier();
-                $employee = new Employee;
-                $this->assignDossier($employee, $dossier);
-                $employee->employee_id = null;
-                $employee->status = 'active';
-                $employee->save();
-                $base = 'EMP-'.$employee->created_at->format('Y').'-'.str_pad((string) $employee->id, 4, '0', STR_PAD_LEFT);
-                $displayId = $base;
-                $suffix = 0;
-                while (Employee::withTrashed()->where('employee_id', $displayId)->exists()) {
-                    $displayId = $base.'-'.(++$suffix);
-                }
-                $employee->employee_id = $displayId;
-                if ($request->hasFile('photo')) {
-                    $newPath = $request->file('photo')->store('employees/'.$employee->id.'/photos', 'employee_private');
-                    if (! $newPath) {
-                        throw new \RuntimeException('Photo storage failed.');
-                    }
-                    $employee->photo_path = $newPath;
-                }
-                $employee->save();
-
-                return $employee->refresh();
+                return app(EmployeeEnrollment::class)->create($request->dossier(), $request->file('photo'), null, $newPath);
             });
         } catch (Throwable $error) {
             $this->failedWrite($newPath, $error);

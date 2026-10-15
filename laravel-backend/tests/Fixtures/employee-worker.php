@@ -14,7 +14,9 @@ if (config('database.default') !== 'mysql' || ! str_ends_with(config('database.c
     throw new RuntimeException('Worker requires a dedicated MySQL _test database.');
 }
 $spec = json_decode(file_get_contents($argv[1]), true, 32, JSON_THROW_ON_ERROR);
-Auth::guard('web')->setUser(User::findOrFail($spec['user_id']));
+if (isset($spec['user_id'])) {
+    Auth::guard('web')->setUser(User::findOrFail($spec['user_id']));
+}
 $request = Request::create($spec['path'], $spec['method'], $spec['parameters']);
 $request->headers->set('Accept', 'application/json');
 foreach ($spec['headers'] ?? [] as $key => $value) {

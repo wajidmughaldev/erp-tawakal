@@ -152,7 +152,7 @@ class AuthenticationTest extends TestCase
 
     public function test_deferred_endpoints_never_simulate_success(): void
     {
-        foreach (['registration-invites/validate', 'employee-requests', 'verify-card'] as $path) {
+        foreach (['verify-card'] as $path) {
             $this->postJson('/api/v1/'.$path)->assertStatus(503);
         }
         [$user] = $this->user();

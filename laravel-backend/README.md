@@ -1,4 +1,4 @@
-Latest implementation: [Checkpoint 2 employee backend report](employee-management-report.md). The following report records the Checkpoint 1 baseline.
+Latest implementation: [Checkpoint 3 candidate registration report](candidate-registration-report.md). Previous work: [Checkpoint 2 employee backend report](employee-management-report.md). The following report records the Checkpoint 1 baseline.
 
 # Backend checkpoint 1: foundation and authentication
 

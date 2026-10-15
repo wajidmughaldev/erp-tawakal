@@ -1,0 +1,355 @@
+{
+  "note": "Documentation examples only. IDs/person/dates are illustrative; <returned-token> means the actual 43-character token from authorized creation. No demo records or passwords are seeded.",
+  "createInvite": {
+    "method": "POST",
+    "path": "/api/v1/registration-invites",
+    "body": {
+      "candidateName": "Example Employee",
+      "designation": "Sales Representative",
+      "department": "Distribution",
+      "expiresAt": "2026-12-01T12:00:00+00:00",
+      "roleCategory": "motorcycle"
+    },
+    "response": {
+      "status": 201,
+      "body": {
+        "data": {
+          "id": "7",
+          "candidateName": "Example Employee",
+          "designation": "Sales Representative",
+          "department": "Distribution",
+          "expiresAt": "2026-12-01T12:00:00+00:00",
+          "status": "valid",
+          "roleCategory": "motorcycle",
+          "token": "<returned-token>"
+        }
+      }
+    }
+  },
+  "validateInvite": {
+    "method": "POST",
+    "path": "/api/v1/registration-invites/validate",
+    "body": {
+      "token": "<returned-token>"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "status": "valid",
+        "invite": {
+          "id": "7",
+          "candidateName": "Example Employee",
+          "designation": "Sales Representative",
+          "department": "Distribution",
+          "expiresAt": "2026-12-01T12:00:00+00:00",
+          "status": "valid",
+          "roleCategory": "motorcycle"
+        }
+      }
+    }
+  },
+  "submit": {
+    "method": "POST",
+    "path": "/api/v1/employee-requests",
+    "contentType": "multipart/form-data",
+    "fields": {
+      "token": "<returned-token>",
+      "dossier": "{\"fullName\":\"Example Employee\",\"fatherName\":\"Example Guardian\",\"designation\":\"Sales Representative\",\"joiningDate\":\"2026-01-10\",\"dateOfBirth\":\"1990-03-15\",\"gender\":\"Male\",\"maritalStatus\":\"Married\",\"dependents\":2,\"bloodGroup\":\"O+\",\"cnic\":\"12345-1234567-1\",\"cnicExpiry\":\"2030-03-15\",\"residentialAddress\":\"Example residential address\",\"homePhone\":\"\",\"mobileNumber\":\"+92 300 1234567\",\"emergencyContact1\":\"Example emergency contact\",\"emergencyContact2\":\"\",\"employers\":[{\"rowId\":\"frontend-row-1\",\"organization\":\"Previous example employer\",\"designation\":\"Assistant\",\"duration\":\"2 years\",\"address\":\"Example workplace\",\"phone\":\"\"}],\"primaryReference\":{\"name\":\"Example primary reference\",\"relation\":\"Former supervisor\",\"contact\":\"Example reference contact\"},\"secondaryReference\":{\"name\":\"\",\"relation\":\"\",\"contact\":\"\"},\"roleCategory\":\"motorcycle\",\"vehicleRegistration\":\"EXAMPLE-123\",\"drivingLicence\":\"EXAMPLE-LICENCE\",\"tokenTaxStatus\":\"Not Provided\",\"checklist\":{\"cnic\":true,\"bloodReport\":false,\"photographs\":true,\"utilityBill\":false},\"declarationAccepted\":true,\"signature\":\"Example Employee\",\"signingDate\":\"2026-01-10\"}",
+      "photo": "Optional JPEG/PNG/WebP binary, at most 3 MB"
+    },
+    "response": {
+      "status": 201,
+      "body": {
+        "data": {
+          "id": "42",
+          "trackingId": "REQ-2026-0042",
+          "status": "pending",
+          "submittedAt": "2026-10-15T12:00:00+00:00",
+          "documents": []
+        }
+      }
+    }
+  },
+  "review": {
+    "method": "GET",
+    "path": "/api/v1/employee-requests/42",
+    "response": {
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "42",
+          "trackingId": "REQ-2026-0042",
+          "status": "pending",
+          "submittedAt": "2026-10-15T12:00:00+00:00",
+          "documents": [],
+          "dossier": {
+            "fullName": "Example Employee",
+            "fatherName": "Example Guardian",
+            "designation": "Sales Representative",
+            "joiningDate": "2026-01-10",
+            "dateOfBirth": "1990-03-15",
+            "gender": "Male",
+            "maritalStatus": "Married",
+            "dependents": 2,
+            "bloodGroup": "O+",
+            "cnic": "12345-1234567-1",
+            "cnicExpiry": "2030-03-15",
+            "residentialAddress": "Example residential address",
+            "homePhone": "",
+            "mobileNumber": "+92 300 1234567",
+            "emergencyContact1": "Example emergency contact",
+            "emergencyContact2": "",
+            "employers": [
+              {
+                "rowId": "frontend-row-1",
+                "organization": "Previous example employer",
+                "designation": "Assistant",
+                "duration": "2 years",
+                "address": "Example workplace",
+                "phone": ""
+              }
+            ],
+            "primaryReference": {
+              "name": "Example primary reference",
+              "relation": "Former supervisor",
+              "contact": "Example reference contact"
+            },
+            "secondaryReference": {
+              "name": "",
+              "relation": "",
+              "contact": ""
+            },
+            "roleCategory": "motorcycle",
+            "vehicleRegistration": "EXAMPLE-123",
+            "drivingLicence": "EXAMPLE-LICENCE",
+            "tokenTaxStatus": "Not Provided",
+            "checklist": {
+              "cnic": true,
+              "bloodReport": false,
+              "photographs": true,
+              "utilityBill": false
+            },
+            "declarationAccepted": true,
+            "signature": "Example Employee",
+            "signingDate": "2026-01-10"
+          },
+          "photo": "http://localhost:8000/api/v1/employee-requests/42/photo"
+        }
+      }
+    }
+  },
+  "list": {
+    "method": "GET",
+    "path": "/api/v1/employee-requests?page=1&status=pending&role=motorcycle",
+    "response": {
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "42",
+            "trackingId": "REQ-2026-0042",
+            "status": "pending",
+            "submittedAt": "2026-10-15T12:00:00+00:00",
+            "documents": [],
+            "dossier": {
+              "fullName": "Example Employee",
+              "fatherName": "Example Guardian",
+              "designation": "Sales Representative",
+              "joiningDate": "2026-01-10",
+              "dateOfBirth": "1990-03-15",
+              "gender": "Male",
+              "maritalStatus": "Married",
+              "dependents": 2,
+              "bloodGroup": "O+",
+              "cnic": "12345-1234567-1",
+              "cnicExpiry": "2030-03-15",
+              "residentialAddress": "Example residential address",
+              "homePhone": "",
+              "mobileNumber": "+92 300 1234567",
+              "emergencyContact1": "Example emergency contact",
+              "emergencyContact2": "",
+              "employers": [
+                {
+                  "rowId": "frontend-row-1",
+                  "organization": "Previous example employer",
+                  "designation": "Assistant",
+                  "duration": "2 years",
+                  "address": "Example workplace",
+                  "phone": ""
+                }
+              ],
+              "primaryReference": {
+                "name": "Example primary reference",
+                "relation": "Former supervisor",
+                "contact": "Example reference contact"
+              },
+              "secondaryReference": {
+                "name": "",
+                "relation": "",
+                "contact": ""
+              },
+              "roleCategory": "motorcycle",
+              "vehicleRegistration": "EXAMPLE-123",
+              "drivingLicence": "EXAMPLE-LICENCE",
+              "tokenTaxStatus": "Not Provided",
+              "checklist": {
+                "cnic": true,
+                "bloodReport": false,
+                "photographs": true,
+                "utilityBill": false
+              },
+              "declarationAccepted": true,
+              "signature": "Example Employee",
+              "signingDate": "2026-01-10"
+            }
+          }
+        ],
+        "meta": {
+          "currentPage": 1,
+          "lastPage": 1,
+          "perPage": 15,
+          "total": 1
+        }
+      }
+    }
+  },
+  "approve": {
+    "method": "POST",
+    "path": "/api/v1/employee-requests/42/approve",
+    "response": {
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "42",
+          "trackingId": "REQ-2026-0042",
+          "status": "approved",
+          "submittedAt": "2026-10-15T12:00:00+00:00",
+          "documents": [],
+          "dossier": {
+            "fullName": "Example Employee",
+            "fatherName": "Example Guardian",
+            "designation": "Sales Representative",
+            "joiningDate": "2026-01-10",
+            "dateOfBirth": "1990-03-15",
+            "gender": "Male",
+            "maritalStatus": "Married",
+            "dependents": 2,
+            "bloodGroup": "O+",
+            "cnic": "12345-1234567-1",
+            "cnicExpiry": "2030-03-15",
+            "residentialAddress": "Example residential address",
+            "homePhone": "",
+            "mobileNumber": "+92 300 1234567",
+            "emergencyContact1": "Example emergency contact",
+            "emergencyContact2": "",
+            "employers": [
+              {
+                "rowId": "frontend-row-1",
+                "organization": "Previous example employer",
+                "designation": "Assistant",
+                "duration": "2 years",
+                "address": "Example workplace",
+                "phone": ""
+              }
+            ],
+            "primaryReference": {
+              "name": "Example primary reference",
+              "relation": "Former supervisor",
+              "contact": "Example reference contact"
+            },
+            "secondaryReference": {
+              "name": "",
+              "relation": "",
+              "contact": ""
+            },
+            "roleCategory": "motorcycle",
+            "vehicleRegistration": "EXAMPLE-123",
+            "drivingLicence": "EXAMPLE-LICENCE",
+            "tokenTaxStatus": "Not Provided",
+            "checklist": {
+              "cnic": true,
+              "bloodReport": false,
+              "photographs": true,
+              "utilityBill": false
+            },
+            "declarationAccepted": true,
+            "signature": "Example Employee",
+            "signingDate": "2026-01-10"
+          },
+          "employeeId": "73"
+        }
+      }
+    }
+  },
+  "rejectAlternative": {
+    "method": "POST",
+    "path": "/api/v1/employee-requests/42/reject",
+    "body": {
+      "reason": "Required review reason"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "42",
+          "trackingId": "REQ-2026-0042",
+          "status": "rejected",
+          "submittedAt": "2026-10-15T12:00:00+00:00",
+          "documents": [],
+          "dossier": {
+            "fullName": "Example Employee",
+            "fatherName": "Example Guardian",
+            "designation": "Sales Representative",
+            "joiningDate": "2026-01-10",
+            "dateOfBirth": "1990-03-15",
+            "gender": "Male",
+            "maritalStatus": "Married",
+            "dependents": 2,
+            "bloodGroup": "O+",
+            "cnic": "12345-1234567-1",
+            "cnicExpiry": "2030-03-15",
+            "residentialAddress": "Example residential address",
+            "homePhone": "",
+            "mobileNumber": "+92 300 1234567",
+            "emergencyContact1": "Example emergency contact",
+            "emergencyContact2": "",
+            "employers": [
+              {
+                "rowId": "frontend-row-1",
+                "organization": "Previous example employer",
+                "designation": "Assistant",
+                "duration": "2 years",
+                "address": "Example workplace",
+                "phone": ""
+              }
+            ],
+            "primaryReference": {
+              "name": "Example primary reference",
+              "relation": "Former supervisor",
+              "contact": "Example reference contact"
+            },
+            "secondaryReference": {
+              "name": "",
+              "relation": "",
+              "contact": ""
+            },
+            "roleCategory": "motorcycle",
+            "vehicleRegistration": "EXAMPLE-123",
+            "drivingLicence": "EXAMPLE-LICENCE",
+            "tokenTaxStatus": "Not Provided",
+            "checklist": {
+              "cnic": true,
+              "bloodReport": false,
+              "photographs": true,
+              "utilityBill": false
+            },
+            "declarationAccepted": true,
+            "signature": "Example Employee",
+            "signingDate": "2026-01-10"
+          },
+          "rejectionReason": "Required review reason"
+        }
+      }
+    }
+  }
+}

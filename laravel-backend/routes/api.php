@@ -1,15 +1,24 @@
 <?php
 
+use App\Http\Controllers\Api\CandidateRequestController;
 use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\RegistrationInviteController;
 use App\Http\Controllers\DeferredEndpointController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
-    // Public entry points remain unavailable until their security checkpoints.
-    Route::post('registration-invites/validate', DeferredEndpointController::class);
-    Route::post('employee-requests', DeferredEndpointController::class);
+    // Public token workflows keep normal Sanctum stateful CSRF protection.
+    Route::post('registration-invites/validate', [RegistrationInviteController::class, 'validateToken'])->middleware('throttle:invite-validation');
+    Route::post('employee-requests', [CandidateRequestController::class, 'store'])->middleware('throttle:candidate-submission');
     Route::post('verify-card', DeferredEndpointController::class);
     Route::middleware(['auth:sanctum', 'portal.role'])->group(function () {
+        Route::get('registration-invites', [RegistrationInviteController::class, 'index']);
+        Route::post('registration-invites', [RegistrationInviteController::class, 'store']);
+        Route::get('employee-requests', [CandidateRequestController::class, 'index']);
+        Route::get('employee-requests/{candidateRequest}', [CandidateRequestController::class, 'show']);
+        Route::get('employee-requests/{candidateRequest}/photo', [CandidateRequestController::class, 'photo'])->name('candidate-requests.photo');
+        Route::post('employee-requests/{candidateRequest}/approve', [CandidateRequestController::class, 'approve']);
+        Route::post('employee-requests/{candidateRequest}/reject', [CandidateRequestController::class, 'reject']);
         Route::apiResource('employees', EmployeeController::class);
         Route::get('employees/{employee}/documents', [EmployeeController::class, 'documents']);
         Route::get('employees/{employee}/photo', [EmployeeController::class, 'photo'])->name('employees.photo');
