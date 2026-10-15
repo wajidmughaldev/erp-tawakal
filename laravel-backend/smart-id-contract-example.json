@@ -1,0 +1,235 @@
+{
+  "note": "Documentation only, not seeded data. Responses illustrate selected_years in an isolated test environment. Default unconfigured returns 503. Dates/IDs/names are illustrative. Tokens must be actual random server credentials, never these placeholders.",
+  "issue": {
+    "method": "POST",
+    "path": "/api/v1/id-cards",
+    "request": {
+      "employeeId": "7",
+      "validityYears": 1
+    },
+    "response": {
+      "status": 201,
+      "body": {
+        "data": {
+          "id": "42",
+          "number": "CARD-2026-000042",
+          "employeeId": "7",
+          "employee": {
+            "displayId": "EMP-2026-0007",
+            "name": "Example Employee",
+            "designation": "Sales Representative",
+            "department": "Distribution",
+            "bloodGroup": "O+",
+            "photo": "http://localhost:8000/api/v1/employees/7/photo"
+          },
+          "status": "active",
+          "issueDate": "2026-10-15",
+          "expiryDate": "2027-10-15",
+          "verificationToken": "<actual-backend-issued-43-character-token>",
+          "issuedBy": "Authorized administrator"
+        }
+      }
+    }
+  },
+  "renewExisting": {
+    "method": "POST",
+    "path": "/api/v1/id-cards/42/renew",
+    "request": {
+      "option": "existing"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "42",
+          "number": "CARD-2026-000042",
+          "employeeId": "7",
+          "employee": {
+            "displayId": "EMP-2026-0007",
+            "name": "Example Employee",
+            "designation": "Sales Representative",
+            "department": "Distribution",
+            "bloodGroup": "O+",
+            "photo": "http://localhost:8000/api/v1/employees/7/photo"
+          },
+          "status": "active",
+          "issueDate": "2026-10-15",
+          "expiryDate": "2028-10-15",
+          "verificationToken": "<actual-backend-issued-43-character-token>",
+          "issuedBy": "Authorized administrator"
+        }
+      }
+    }
+  },
+  "renewNewPhysical": {
+    "method": "POST",
+    "path": "/api/v1/id-cards/42/renew",
+    "request": {
+      "option": "new_physical"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "43",
+          "number": "CARD-2026-000043",
+          "employeeId": "7",
+          "employee": {
+            "displayId": "EMP-2026-0007",
+            "name": "Example Employee",
+            "designation": "Sales Representative",
+            "department": "Distribution",
+            "bloodGroup": "O+",
+            "photo": "http://localhost:8000/api/v1/employees/7/photo"
+          },
+          "status": "active",
+          "issueDate": "2026-10-15",
+          "expiryDate": "2028-10-15",
+          "verificationToken": "<fresh-backend-issued-43-character-token>",
+          "issuedBy": "Authorized administrator"
+        }
+      }
+    },
+    "previousCardStatus": "replaced"
+  },
+  "reissueAlternative": {
+    "method": "POST",
+    "path": "/api/v1/id-cards/42/reissue",
+    "request": {
+      "reason": "Lost / Stolen Card",
+      "acknowledged": true
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "43",
+          "number": "CARD-2026-000043",
+          "employeeId": "7",
+          "employee": {
+            "displayId": "EMP-2026-0007",
+            "name": "Example Employee",
+            "designation": "Sales Representative",
+            "department": "Distribution",
+            "bloodGroup": "O+",
+            "photo": "http://localhost:8000/api/v1/employees/7/photo"
+          },
+          "status": "active",
+          "issueDate": "2026-10-15",
+          "expiryDate": "2027-10-15",
+          "verificationToken": "<fresh-backend-issued-43-character-token>",
+          "issuedBy": "Authorized administrator"
+        }
+      }
+    },
+    "previousCardStatus": "replaced",
+    "note": "Expiry remains the old credential expiration; no renewal term is added."
+  },
+  "deactivateAlternative": {
+    "method": "POST",
+    "path": "/api/v1/id-cards/42/deactivate",
+    "request": {
+      "reason": "Security review"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "42",
+          "number": "CARD-2026-000042",
+          "employeeId": "7",
+          "employee": {
+            "displayId": "EMP-2026-0007",
+            "name": "Example Employee",
+            "designation": "Sales Representative",
+            "department": "Distribution",
+            "bloodGroup": "O+",
+            "photo": "http://localhost:8000/api/v1/employees/7/photo"
+          },
+          "status": "revoked",
+          "issueDate": "2026-10-15",
+          "expiryDate": "2027-10-15",
+          "verificationToken": "<actual-backend-issued-43-character-token>",
+          "issuedBy": "Authorized administrator"
+        }
+      }
+    }
+  },
+  "verify": {
+    "method": "POST",
+    "path": "/api/v1/verify-card",
+    "request": {
+      "token": "<actual-backend-issued-43-character-token>"
+    },
+    "response": {
+      "status": 200,
+      "body": {
+        "status": "valid",
+        "message": "This official credential is active.",
+        "card": {
+          "number": "CARD-2026-000042",
+          "employeeName": "Example Employee",
+          "employeeDisplayId": "EMP-2026-0007",
+          "designation": "Sales Representative",
+          "issueDate": "2026-10-15",
+          "expiryDate": "2027-10-15"
+        }
+      }
+    }
+  },
+  "unknownVerification": {
+    "status": 200,
+    "body": {
+      "status": "invalid",
+      "message": "This credential is not recognized or its holder is ineligible."
+    }
+  },
+  "disabledPolicy": {
+    "status": 503,
+    "body": {
+      "message": "Card validity policy is unconfigured. Issuance and renewal require an approved policy."
+    }
+  },
+  "policyMismatch": {
+    "status": 422,
+    "body": {
+      "message": "The eleven-month policy conflicts with a year selection. Align the client with the approved policy.",
+      "errors": {
+        "validityYears": [
+          "The eleven-month policy conflicts with a year selection. Align the client with the approved policy."
+        ]
+      }
+    }
+  },
+  "list": {
+    "status": 200,
+    "body": {
+      "data": [
+        {
+          "id": "42",
+          "number": "CARD-2026-000042",
+          "employeeId": "7",
+          "employee": {
+            "displayId": "EMP-2026-0007",
+            "name": "Example Employee",
+            "designation": "Sales Representative",
+            "department": "Distribution",
+            "bloodGroup": "O+",
+            "photo": "http://localhost:8000/api/v1/employees/7/photo"
+          },
+          "status": "active",
+          "issueDate": "2026-10-15",
+          "expiryDate": "2027-10-15",
+          "verificationToken": "<actual-backend-issued-43-character-token>",
+          "issuedBy": "Authorized administrator"
+        }
+      ],
+      "meta": {
+        "currentPage": 1,
+        "lastPage": 1,
+        "perPage": 15,
+        "total": 1
+      }
+    }
+  }
+}

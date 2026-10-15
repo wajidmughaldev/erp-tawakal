@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\CandidateRequestController;
 use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\IdCardController;
 use App\Http\Controllers\Api\RegistrationInviteController;
 use App\Http\Controllers\DeferredEndpointController;
 use Illuminate\Support\Facades\Route;
@@ -10,7 +11,7 @@ Route::prefix('v1')->group(function () {
     // Public token workflows keep normal Sanctum stateful CSRF protection.
     Route::post('registration-invites/validate', [RegistrationInviteController::class, 'validateToken'])->middleware('throttle:invite-validation');
     Route::post('employee-requests', [CandidateRequestController::class, 'store'])->middleware('throttle:candidate-submission');
-    Route::post('verify-card', DeferredEndpointController::class);
+    Route::post('verify-card', [IdCardController::class, 'verify'])->middleware('throttle:card-verification');
     Route::middleware(['auth:sanctum', 'portal.role'])->group(function () {
         Route::get('registration-invites', [RegistrationInviteController::class, 'index']);
         Route::post('registration-invites', [RegistrationInviteController::class, 'store']);
@@ -24,8 +25,11 @@ Route::prefix('v1')->group(function () {
         Route::get('employees/{employee}/photo', [EmployeeController::class, 'photo'])->name('employees.photo');
         Route::get('documents/{document}/download', [EmployeeController::class, 'download']);
         Route::post('employees/{employee}/actions', DeferredEndpointController::class);
-        Route::get('id-cards', DeferredEndpointController::class);
-        Route::post('id-cards', DeferredEndpointController::class);
-        Route::get('id-cards/{id}', DeferredEndpointController::class);
+        Route::get('id-cards', [IdCardController::class, 'index']);
+        Route::post('id-cards', [IdCardController::class, 'store']);
+        Route::get('id-cards/{idCard}', [IdCardController::class, 'show']);
+        Route::post('id-cards/{idCard}/renew', [IdCardController::class, 'renew']);
+        Route::post('id-cards/{idCard}/reissue', [IdCardController::class, 'reissue']);
+        Route::post('id-cards/{idCard}/deactivate', [IdCardController::class, 'deactivate']);
     });
 });

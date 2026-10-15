@@ -348,7 +348,7 @@ class EmployeeManagementTest extends TestCase
         $created = $this->createEmployee()->assertCreated();
         $cnic = $created->json('data.dossier.cnic');
         foreach (['verify-card'] as $path) {
-            $response = $this->postJson('/api/v1/'.$path, ['employeeId' => $created->json('data.id')])->assertStatus(503);
+            $response = $this->postJson('/api/v1/'.$path, ['employeeId' => $created->json('data.id')])->assertStatus(422);
             $this->assertStringNotContainsString($cnic, $response->getContent());
             $response->assertJsonMissingPath('data.dossier');
         }

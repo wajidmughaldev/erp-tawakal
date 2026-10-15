@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Process\Process;
 use Tests\Fixtures\EmployeeDossier;
 use Tests\TestCase;
@@ -19,7 +20,7 @@ class EmployeeConcurrencyTest extends TestCase
 
     protected function tearDown(): void
     {
-        foreach (['candidate_requests', 'registration_invites', 'employee_documents', 'id_cards', 'employees', 'users'] as $table) {
+        foreach (['candidate_requests', 'registration_invites', 'employee_documents', 'card_lifecycle_events', 'id_cards', 'employees', 'users'] as $table) {
             DB::table($table)->delete();
         }
         parent::tearDown();
@@ -201,5 +202,61 @@ class EmployeeConcurrencyTest extends TestCase
         $this->assertDatabaseCount('employees', 1);
         $this->assertSame(1, CandidateRequest::where('status', 'approved')->count());
         $this->assertSame(1, CandidateRequest::where('status', 'pending')->count());
+    }
+
+    private function cardFixture(): array
+    {
+        config(['cards.validity_policy' => 'selected_years']);
+        $user = $this->actor();
+        $employee = $this->actingAs($user, 'web')->postJson('/api/v1/employees', ['dossier' => json_encode(EmployeeDossier::make())])->assertCreated()->json('data');
+        $card = $this->postJson('/api/v1/id-cards', ['employeeId' => $employee['id'], 'validityYears' => 1])->assertCreated()->json('data');
+
+        return [$user, $card];
+    }
+
+    public function test_simultaneous_card_issuance_creates_one_current_credential(): void
+    {
+        config(['cards.validity_policy' => 'selected_years']);
+        $user = $this->actor();
+        $employee = $this->actingAs($user, 'web')->postJson('/api/v1/employees', ['dossier' => json_encode(EmployeeDossier::make())])->assertCreated()->json('data');
+        $job = ['method' => 'POST', 'path' => '/api/v1/id-cards', 'parameters' => ['employeeId' => $employee['id'], 'validityYears' => 1], 'card_policy' => 'selected_years'];
+        $results = $this->parallel($user, [$job, $job]);
+        $statuses = array_column($results, 'status');
+        sort($statuses);
+        $this->assertSame([201, 409], $statuses);
+        $this->assertDatabaseCount('id_cards', 1);
+        $this->assertDatabaseCount('card_lifecycle_events', 1);
+        $this->assertSame(1, DB::table('id_cards')->whereNotNull('current_employee_id')->count());
+    }
+
+    public static function cardRaces(): array
+    {
+        return [['reissue', 'reissue', null], ['renew', 'reissue', 'new_physical'], ['deactivate', 'reissue', null], ['renew', 'reissue', 'existing']];
+    }
+
+    #[DataProvider('cardRaces')]
+    public function test_simultaneous_card_lifecycle_is_serialized(string $first, string $second, ?string $option): void
+    {
+        [$user,$card] = $this->cardFixture();
+        $jobs = [];
+        foreach ([$first, $second] as $action) {
+            $jobs[] = ['method' => 'POST', 'path' => '/api/v1/id-cards/'.$card['id'].'/'.$action, 'parameters' => ['option' => $option, 'reason' => 'Damaged Card', 'acknowledged' => true], 'card_policy' => 'selected_years'];
+        }
+        $results = $this->parallel($user, $jobs);
+        $statuses = array_column($results, 'status');
+        sort($statuses);
+        // Existing renewal retains the same credential; renewal then reissue is also a valid serial outcome.
+        if ($option === 'existing') {
+            $this->assertContains($statuses, [[200, 200], [200, 409]]);
+        } else {
+            $this->assertSame([200, 409], $statuses);
+        }
+        $current = DB::table('id_cards')->whereNotNull('current_employee_id')->get();
+        $this->assertLessThanOrEqual(1, $current->count());
+        $this->assertSame(0, DB::table('id_cards')->where('status', 'active')->whereNull('current_employee_id')->count());
+        $this->assertDatabaseHas('id_cards', ['id' => $card['id'], 'current_employee_id' => null]);
+        $this->assertLessThanOrEqual(2, DB::table('id_cards')->count());
+        $this->assertNotSame('valid', $this->postJson('/api/v1/verify-card', ['token' => $card['verificationToken']])->json('status'));
+        $this->assertDatabaseHas('card_lifecycle_events', ['administrator_id' => $user->id, 'previous_card_id' => $card['id']]);
     }
 }

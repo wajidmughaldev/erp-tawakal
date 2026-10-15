@@ -14,6 +14,9 @@ if (config('database.default') !== 'mysql' || ! str_ends_with(config('database.c
     throw new RuntimeException('Worker requires a dedicated MySQL _test database.');
 }
 $spec = json_decode(file_get_contents($argv[1]), true, 32, JSON_THROW_ON_ERROR);
+if (isset($spec['card_policy'])) {
+    config(['cards.validity_policy' => $spec['card_policy']]);
+}
 if (isset($spec['user_id'])) {
     Auth::guard('web')->setUser(User::findOrFail($spec['user_id']));
 }

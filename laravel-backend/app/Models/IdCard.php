@@ -8,28 +8,29 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class IdCard extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory,SoftDeletes;
 
-    protected $fillable = [
-        'employee_id',
-        'card_number',
-        'qr_code_hash',
-        'issued_date',
-        'expiry_date',
-        'status',
-        'printed_by',
-        'last_verified_at',
-        'verification_count',
-    ];
+    protected $guarded = ['id'];
 
-    protected $casts = [
-        'issued_date' => 'date',
-        'expiry_date' => 'date',
-        'last_verified_at' => 'datetime',
-    ];
+    protected $hidden = ['qr_code_hash', 'verification_token_digest', 'verification_token'];
+
+    protected function casts(): array
+    {
+        return ['issued_date' => 'immutable_date', 'expiry_date' => 'immutable_date', 'last_verified_at' => 'datetime', 'verification_token' => 'encrypted', 'validity_years' => 'integer'];
+    }
 
     public function employee()
     {
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(Employee::class)->withTrashed();
+    }
+
+    public function lifecycleEvents()
+    {
+        return $this->hasMany(CardLifecycleEvent::class, 'card_id');
+    }
+
+    public function isCurrent(): bool
+    {
+        return $this->status === 'active' && $this->verification_token_digest !== null && $this->current_employee_id === $this->employee_id && ! $this->trashed();
     }
 }

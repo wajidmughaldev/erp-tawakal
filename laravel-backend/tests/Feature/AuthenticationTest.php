@@ -152,11 +152,8 @@ class AuthenticationTest extends TestCase
 
     public function test_deferred_endpoints_never_simulate_success(): void
     {
-        foreach (['verify-card'] as $path) {
-            $this->postJson('/api/v1/'.$path)->assertStatus(503);
-        }
         [$user] = $this->user();
-        $this->actingAs($user, 'web')->getJson('/api/v1/id-cards')->assertStatus(503);
+        $this->actingAs($user, 'web')->postJson('/api/v1/employees/1/actions')->assertStatus(503);
     }
 
     public function test_csrf_cookie_and_missing_token_rejection(): void

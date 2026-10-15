@@ -1,4 +1,4 @@
-Latest implementation: [Checkpoint 3 candidate registration report](candidate-registration-report.md). Previous work: [Checkpoint 2 employee backend report](employee-management-report.md). The following report records the Checkpoint 1 baseline.
+Latest implementation: [Checkpoint 4 Smart ID report](smart-id-cards-report.md). Previous work: [Checkpoint 3 candidate registration report](candidate-registration-report.md), [Checkpoint 2 employee backend report](employee-management-report.md). The following report records the Checkpoint 1 baseline.
 
 # Backend checkpoint 1: foundation and authentication
 

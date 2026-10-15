@@ -17,6 +17,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // This application accepts SPA sessions only, never bearer tokens.
         Sanctum::getAccessTokenFromRequestUsing(fn () => null);
+        RateLimiter::for('card-verification', fn (Request $request) => Limit::perMinute(60)->by($request->ip()));
         RateLimiter::for('invite-validation', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
         RateLimiter::for('candidate-submission', function (Request $request) {
             $token = $request->input('token');

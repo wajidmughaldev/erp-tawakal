@@ -20,14 +20,7 @@ class EmployeeResource extends JsonResource
             'department' => $this->department ?? '', 'phone' => $this->phone ?? '', 'status' => $this->status,
             ...($photo ? ['photo' => $photo] : []),
             'dossier' => $dossier, 'documents' => EmployeeFiles::documents($this->resource), 'history' => [],
-            // Only previously issued legacy cards are read; no verification credential is invented.
-            'cards' => $this->cards->whereIn('status', ['active', 'expired', 'revoked'])->map(fn ($card) => [
-                'id' => (string) $card->id, 'number' => $card->card_number, 'employeeId' => (string) $this->id,
-                'employee' => ['displayId' => $this->employee_id, 'name' => $this->full_name, 'designation' => $this->designation, 'department' => $this->department ?? '', 'bloodGroup' => $dossier['bloodGroup'], ...($photo ? ['photo' => $photo] : [])],
-                'status' => $card->status === 'expired' ? 'active' : $card->status,
-                'issueDate' => $card->issued_date->format('Y-m-d'), 'expiryDate' => $card->expiry_date->format('Y-m-d'),
-                'verificationToken' => '', 'issuedBy' => $card->printed_by ?? '',
-            ])->values()->all(),
+            'cards' => IdCardResource::collection($this->cards->sortByDesc('id')->values())->resolve($request),
         ];
     }
 }
