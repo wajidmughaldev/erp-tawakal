@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\CandidateRequestController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\IdCardController;
 use App\Http\Controllers\Api\RegistrationInviteController;
+use App\Http\Controllers\Api\SummaryController;
 use App\Http\Controllers\DeferredEndpointController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,6 +16,9 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', 'portal.role'])->group(function () {
         Route::get('registration-invites', [RegistrationInviteController::class, 'index']);
         Route::post('registration-invites', [RegistrationInviteController::class, 'store']);
+        Route::get('dashboard/summary', [SummaryController::class, 'dashboard']);
+        Route::get('employee-requests/summary', [SummaryController::class, 'requests']);
+        Route::get('id-cards/policy', [IdCardController::class, 'policy']);
         Route::get('employee-requests', [CandidateRequestController::class, 'index']);
         Route::get('employee-requests/{candidateRequest}', [CandidateRequestController::class, 'show']);
         Route::get('employee-requests/{candidateRequest}/photo', [CandidateRequestController::class, 'photo'])->name('candidate-requests.photo');

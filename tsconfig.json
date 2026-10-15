@@ -37,7 +37,8 @@
     ".next/types/**/*.ts",
     ".next/frontend-browser/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    ".next/integration-build/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

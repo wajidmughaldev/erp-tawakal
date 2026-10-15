@@ -22,8 +22,9 @@ export default function EmployeeRequestsPage() {
 
   const state=useResource(()=>requestsApi.list({page,search,status:activeTab==='All Requests'?undefined:activeTab==='Pending Review'?'pending':activeTab.toLowerCase(),role:role==='All Roles'?undefined:role}),[page,search,activeTab,role]);
   const invites=useResource(()=>invitesApi.list({page:invitePage}),[invitePage]);
-  const pending=activeTab==='Pending Review'?state.data?.meta.total??'—':'—';
-  const approved=activeTab==='Approved'?state.data?.meta.total??'—':'—';
+  const summary=useResource(requestsApi.summary);
+  const pending=summary.data?.data.pending??'—';
+  const approved=summary.data?.data.approved??'—';
   const requests=(state.data?.data??[]);
   const filtered=requests.map(item=>({...item,name:item.dossier.fullName,nameUrdu:'',designation:item.dossier.designation,role:item.dossier.roleCategory==='van'?'Delivery Van Driver':item.dossier.roleCategory==='motorcycle'?'Motorcycle Field Sales Executive':'Office / General',cnic:item.dossier.cnic,phone:item.dossier.mobileNumber,joining:item.dossier.joiningDate,submitted:item.submittedAt,status:item.status==='pending'?'Pending Review':item.status==='approved'?'Approved':'Rejected'}));
   const invitationLinks=(invites.data?.data??[]).map(item=>({...item,candidate:item.candidateName,target:item.designation+' / '+item.department,expires:item.expiresAt}));
@@ -66,8 +67,8 @@ export default function EmployeeRequestsPage() {
           {[
             ['Pending Review', pending, 'Awaiting admin verification', 'text-yellow-500'],
             ['Approved & Enrolled', approved, 'Ready for ID card generation', 'text-emerald-700'],
-            ['Field Sales & Drivers', '—', 'Delivery Van / Motorcycle verified', 'text-blue-600'],
-            ['Active Invitation Links', '—', 'Authorized access tokens', 'text-slate-950'],
+            ['Field Sales & Drivers', summary.data?.data.fieldRoles??'—', 'Delivery Van / Motorcycle verified', 'text-blue-600'],
+            ['Active Invitation Links', summary.data?.data.activeInvitations??'—', 'Authorized access tokens', 'text-slate-950'],
           ].map(([label, value, helper, color]) => (
             <div key={label} className="rounded-lg border border-slate-200 bg-white px-[18px] py-4 shadow-sm">
               <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">{label}</div>
@@ -81,10 +82,10 @@ export default function EmployeeRequestsPage() {
           <div className="flex flex-col justify-between gap-3 border-b border-slate-200 p-3 lg:flex-row lg:items-center">
             <div className="flex flex-wrap gap-2">
               {[
-                ['All Requests', activeTab==='All Requests'?state.data?.meta.total??'—':'—'],
+                ['All Requests', summary.data?.data.total??'—'],
                 ['Pending Review', pending],
                 ['Approved', approved],
-                ['Rejected', activeTab==='Rejected'?state.data?.meta.total??'—':'—'],
+                ['Rejected', summary.data?.data.rejected??'—'],
               ].map(([label, count]) => (
                 <button
                   key={label}
@@ -207,8 +208,8 @@ export default function EmployeeRequestsPage() {
       </div>
       </div>
       {message&&<p role="status" className="my-3 text-sm">{message}</p>}
-      {reviewId&&<RequestReview id={reviewId} onClose={()=>setReviewId(undefined)} onChanged={state.refetch}/>}
-      {showInvite&&<InviteDialog onClose={()=>setShowInvite(false)} onCreated={invites.refetch}/>}
+      {reviewId&&<RequestReview id={reviewId} onClose={()=>setReviewId(undefined)} onChanged={()=>{state.refetch();summary.refetch();invites.refetch();}}/>}
+      {showInvite&&<InviteDialog onClose={()=>setShowInvite(false)} onCreated={()=>{invites.refetch();summary.refetch();}}/>}
     </PortalShell>
   );
 }

@@ -14,7 +14,9 @@ export type Dossier = {
 export type DocumentRecord = {id: string; name: string; type: string; uploadedAt: string};
 export type EmploymentEvent = {id: string; title: string; date: string; description: string};
 export type Employee = {id: string; displayId: string; name: string; designation: string; department: string; phone: string; status: EmployeeStatus; photo?: string; dossier: Dossier; documents: DocumentRecord[]; history: EmploymentEvent[]; cards: IDCard[]};
-export type IDCard = {id: string; number: string; employeeId: string; employee: {displayId: string; name: string; designation: string; department: string; bloodGroup?: string; photo?: string}; status: CardStatus; issueDate: string; expiryDate: string; verificationToken: string; issuedBy: string};
+export type CardPolicy = {mode:'unconfigured'|'selected_years'|'eleven_months';canIssue:boolean;canRenew:boolean;validityYears:number[];termLabel:string};
+export type RequestSummary = {total:number;pending:number;approved:number;rejected:number;fieldRoles:number;activeInvitations:number};
+export type IDCard = {credentialState?:'current'|'historical'|'ineligible';id: string; number: string; employeeId: string; employee: {displayId: string; name: string; designation: string; department: string; bloodGroup?: string; photo?: string}; status: CardStatus; issueDate: string; expiryDate: string; verificationToken: string; issuedBy: string};
 export type EmployeeRequest = {id: string; trackingId: string; status: 'pending' | 'approved' | 'rejected'; submittedAt: string; dossier: Dossier; photo?: string; documents: DocumentRecord[]; employeeId?: string; rejectionReason?: string};
 export type RegistrationInvite = {id: string; candidateName: string; designation: string; department: string; roleCategory?: Dossier['roleCategory']; expiresAt: string; status: 'valid' | 'expired' | 'used' | 'invalid'; token?: string};
 export type InviteValidation = {status: RegistrationInvite['status']; invite?: RegistrationInvite};
@@ -25,17 +27,19 @@ export type Result<T> = {data: T};
 export type ListQuery = {page?: number; search?: string; status?: string; cardStatus?: string; expiry?: string; sort?: string; category?: string; role?: string};
 export type EmploymentAction = {type: 'transfer'; department: string; location: string; effectiveDate: string; reason: string; notes: string} | {type: 'resign'; resignationDate: string; lastWorkingDate: string; reason: string} | {type: 'other'; title: string; date: string; description: string};
 export type PublicVerification = {status: 'valid' | 'expiring' | 'expired' | 'revoked' | 'invalid'; message: string; card?: {number: string; employeeName: string; employeeDisplayId: string; designation: string; photo?: string; issueDate: string; expiryDate: string}};
-export type DashboardSummary = {totalEmployees: number; activeEmployees: number; resignedEmployees: number; activeCards: number; revokedCards: number; expiringCards: number; expiredCards: number; managerCount: number; pendingRequests: number; expiring: IDCard[]};
+export type DashboardSummary = {totalEmployees: number; activeEmployees: number; resignedEmployees: number; activeCards: number; revokedCards: number; expiringCards: number; expiredCards: number; managerCount: number; pendingRequests: number; expiring: Omit<IDCard,'verificationToken'>[]};
 
-export function cardLabel(card: Pick<IDCard, 'status' | 'expiryDate'>, now = new Date()) {
+export function cardLabel(card: Pick<IDCard,'status'|'expiryDate'> & Partial<Pick<IDCard,'verificationToken'|'credentialState'>>, now = new Date()) {
   if (card.status === 'replaced') return 'Replaced';
   if (card.status === 'revoked') return 'Revoked';
+  if (card.credentialState==='historical'||('verificationToken' in card && !card.verificationToken && card.credentialState!=='current')) return 'Historical / No QR';
+  if (card.credentialState==='ineligible') return 'Ineligible';
   const days = daysToExpiry(card.expiryDate, now);
   if (days === null) return 'Unknown';
   return days < 0 ? 'Expired' : days <= 30 ? 'Expiring Soon' : 'Active';
 }
 export function currentCard(cards: IDCard[] = []) {
-  return cards.filter(card => card.status === 'active').sort((a,b) => Date.parse(b.issueDate) - Date.parse(a.issueDate))[0];
+  return cards.filter(card => card.status==='active' && card.credentialState!=='historical' && card.credentialState!=='ineligible' && (card.credentialState==='current'||Boolean(card.verificationToken))).sort((a,b) => Date.parse(b.issueDate) - Date.parse(a.issueDate))[0];
 }
 export function latestCard(cards: IDCard[] = []) {
   return [...cards].sort((a,b) => Date.parse(b.issueDate) - Date.parse(a.issueDate))[0];

@@ -44,3 +44,19 @@ Dashboard includes activeCards/revokedCards separately from employee totals. Car
 Read-only metadata is not resubmitted as a file. Laravel must retain existing documents and photo during updates unless a replacement file is explicitly supplied. No email or fake attachment is invented.
 
 References: [Laravel Sanctum SPA authentication](https://laravel.com/docs/12.x/sanctum), [ZXing browser API](https://github.com/zxing-js/browser), [local QR generator](https://github.com/soldair/node-qrcode), [Navigation API](https://developer.mozilla.org/en-US/docs/Web/API/Navigation/navigate_event).
+
+## Checkpoint 5 implemented integration
+
+Public invitation validation, candidate submission and card verification bootstrap `/sanctum/csrf-cookie` before the first mutation. Concurrent bootstrap calls share one promise. Requests include cookies and the decoded `X-XSRF-TOKEN`. An explicit 419 refreshes public security state once and reports the error; it never replays the mutation. Network failures also never trigger an automatic mutation retry.
+
+`employeesApi.get(id)` returns `{data, etag}`. Multipart updates use POST with `_method=PATCH` and `If-Match` from that specific fetch result. Missing revision returns 428; stale revision returns 412. The UI requires explicit reload and warns before discarding unsaved edits. Revisions are checked/incremented atomically in MySQL. Directory rows display `displayId` while URLs retain internal IDs.
+
+`GET /api/v1/id-cards/policy` returns `{data:{mode,canIssue,canRenew,validityYears,termLabel}}`. Unconfigured policy disables issuance/renewal. Selected-year issuance includes the selected `validityYears`; eleven-month issuance omits it. Production defaults remain unconfigured.
+
+`POST /api/v1/id-cards/{id}/renew` requires `Idempotency-Key` (16–100 ASCII letters, digits or hyphens). The body is `{option:"existing"|"new_physical",validityYears?:number}`. The UI generates one random key per explicit attempt and retains it for a manual retry after an uncertain failure. The database stores only its SHA-256 digest, actor, source card, options and result card. Exact replay returns the existing result without extending validity or creating another event. Reusing a key for another actor/card/options returns 409. Missing/invalid keys return 422. A new deliberate action uses a fresh key. Record locking, state checks, audit event and replay ledger insertion share one transaction.
+
+Cards expose `credentialState` (`current`, `historical`, `ineligible`). Legacy rows without modern credential tokens are historical, never active QR credentials. Card statistics and directory filters share eligibility predicates: live active employee, modern token digest, current employee slot and active card. `active` means expiry beyond 30 days; `expiring_soon` means today through day 30 inclusive; `expired` means before today. Revoked/replaced remain terminal backend states. Employee card-status/expiry predicates run in SQL before pagination.
+
+`GET /api/v1/dashboard/summary` returns actual employee, eligible card, manager and pending-request counts plus the limited expiring-card list. It omits verification tokens and dossiers. `GET /api/v1/employee-requests/summary` returns actual total/pending/approved/rejected/fieldRoles/activeInvitations counts. Both require authentication and return `Cache-Control: no-store`. Private photo URLs use the session cookie in normal browser images; document downloads use credentialed fetch. Use the same browser hostname on both ports.
+
+Managers CRUD and notifications remain unavailable; employment actions return 503. See `docs/integration-matrix.md`, `docs/checkpoint-5-report.md` and `docs/manual-integration-qa.md` for audit, measured results and isolated Windows QA commands.

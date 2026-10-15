@@ -10,7 +10,8 @@
     "clean": "rm -rf .next out dist server.js",
     "lint": "tsc --noEmit",
     "test:frontend": "tsx --test lib/*.test.ts",
-    "test:browser": "playwright test -c frontend.playwright.config.ts"
+    "test:browser": "playwright test -c frontend.playwright.config.ts",
+    "test:integration": "playwright test -c frontend.integration.playwright.config.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

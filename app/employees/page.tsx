@@ -4,7 +4,7 @@ import {Suspense,useEffect,useState} from 'react';
 import {useSearchParams} from 'next/navigation';
 import {initialFilter, initialPage, persistListQuery} from '@/lib/list-query';
 import {employeesApi} from '@/lib/services';
-import {cardLabel, latestCard, displayStatus} from '@/lib/contracts';
+import {cardLabel, currentCard, latestCard, displayStatus} from '@/lib/contracts';
 import {useResource} from '@/lib/use-resource';
 import {DataState} from '@/components/portal/data-state';
 import {Pagination} from '@/components/portal/pagination';
@@ -29,7 +29,7 @@ function EmployeesContent() {
   const [page, setPage] = useState(initialPage(params));
   const state = useResource(() => employeesApi.list({page, search: query, status: status === 'All' ? undefined : status.toLowerCase(), cardStatus: cardStatus === 'All' ? undefined : cardStatus==='Deactivated'?'revoked':cardStatus.toLowerCase().replaceAll(' ', '_'), expiry: expiry === 'All' ? undefined : 'expiring'}), [page, query, status, cardStatus, expiry]);
   useEffect(()=>persistListQuery({search:query,status,page,cardStatus,expiry}),[query,status,page,cardStatus,expiry]);
-  const filtered = (state.data?.data ?? []).map(item => ({...item, initials: item.name.split(' ').map(part => part[0]).slice(0,2).join(''), role: item.designation, employment: displayStatus(item.status), card: latestCard(item.cards) ? cardLabel(latestCard(item.cards)) : 'No Card', expiry: latestCard(item.cards)?.expiryDate ?? '—'}));
+  const filtered = (state.data?.data ?? []).map(item => ({...item, initials: item.name.split(' ').map(part => part[0]).slice(0,2).join(''), role: item.designation, employment: displayStatus(item.status), card: (currentCard(item.cards)??latestCard(item.cards)) ? cardLabel(latestCard(item.cards)) : 'No Card', expiry: latestCard(item.cards)?.expiryDate ?? '—'}));
 
   return (
     <PortalShell>
@@ -92,7 +92,7 @@ function EmployeesContent() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-4 py-[13px] font-mono text-[11px] font-medium text-pink-600">{employee.id}</td>
+                    <td className="px-4 py-[13px] font-mono text-[11px] font-medium text-pink-600">{employee.displayId}</td>
                     <td className="px-4 py-[13px] text-[12px] text-slate-600">{employee.phone}</td>
                     <td className="px-4 py-[13px]">
                       <span className={`rounded-md border px-2.5 py-1 text-[10px] font-medium ${statusClass(employee.employment)}`}>{employee.employment}</span>

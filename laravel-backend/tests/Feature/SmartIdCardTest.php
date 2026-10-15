@@ -205,11 +205,11 @@ class SmartIdCardTest extends TestCase
         $card = $this->issue($employee);
         $original = IdCard::find($card['id']);
         config(['cards.validity_policy' => 'unconfigured']);
-        $this->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'existing'])->assertStatus(503);
+        $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'existing'])->assertStatus(503);
         $this->assertSame($original->expiry_date->toDateString(), IdCard::find($card['id'])->expiry_date->toDateString());
         $this->verify($card['verificationToken'])->assertJsonPath('status', 'valid');
         config(['cards.validity_policy' => 'eleven_months']);
-        $this->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'existing'])->assertUnprocessable()->assertJsonValidationErrors('validityYears');
+        $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'existing'])->assertUnprocessable()->assertJsonValidationErrors('validityYears');
     }
 
     public function test_public_verification_status_boundaries_privacy_and_invalid_tokens(): void
@@ -242,7 +242,7 @@ class SmartIdCardTest extends TestCase
             $employee->save();
             $this->verify($card['verificationToken'])->assertJsonPath('status', 'invalid')->assertJsonMissingPath('card');
         }
-        $this->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'existing'])->assertConflict();
+        $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'existing'])->assertConflict();
         $this->postJson('/api/v1/id-cards/'.$card['id'].'/reissue', ['reason' => 'Damaged Card', 'acknowledged' => true])->assertConflict();
         $employee->status = 'active';
         $employee->save();
@@ -270,7 +270,7 @@ class SmartIdCardTest extends TestCase
         $issue = $model->issued_date;
         $actor = $model->issued_by;
         $this->travelTo(CarbonImmutable::parse('2026-06-10 12:00:00'));
-        $renewed = $this->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'existing'])->assertOk()->assertJsonPath('data.id', $card['id'])->assertJsonPath('data.number', $card['number'])->assertJsonPath('data.verificationToken', $card['verificationToken'])->assertJsonPath('data.issueDate', '2026-01-31')->assertJsonPath('data.expiryDate', '2030-01-31')->json('data');
+        $renewed = $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'existing'])->assertOk()->assertJsonPath('data.id', $card['id'])->assertJsonPath('data.number', $card['number'])->assertJsonPath('data.verificationToken', $card['verificationToken'])->assertJsonPath('data.issueDate', '2026-01-31')->assertJsonPath('data.expiryDate', '2030-01-31')->json('data');
         $this->assertSame($actor, $model->fresh()->issued_by);
         $this->assertTrue($issue->equalTo($model->fresh()->issued_date));
         $this->assertDatabaseCount('id_cards', 1);
@@ -283,13 +283,13 @@ class SmartIdCardTest extends TestCase
         $employee = $this->employee();
         $card = $this->postJson('/api/v1/id-cards', ['employeeId' => $employee->id])->assertCreated()->json('data');
         IdCard::find($card['id'])->update(['expiry_date' => CardValidity::today()->subDays(10)]);
-        $this->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'existing'])->assertOk()->assertJsonPath('data.expiryDate', CardValidity::today()->addMonthsNoOverflow(11)->toDateString());
+        $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'existing'])->assertOk()->assertJsonPath('data.expiryDate', CardValidity::today()->addMonthsNoOverflow(11)->toDateString());
     }
 
     public function test_new_physical_renewal_preserves_old_history_and_revokes_old_qr(): void
     {
         $card = $this->issue();
-        $new = $this->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'new_physical'])->assertOk()->json('data');
+        $new = $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'new_physical'])->assertOk()->json('data');
         $this->assertNotSame($card['id'], $new['id']);
         $this->assertNotSame($card['number'], $new['number']);
         $this->assertNotSame($card['verificationToken'], $new['verificationToken']);
@@ -302,7 +302,7 @@ class SmartIdCardTest extends TestCase
         $this->assertDatabaseHas('card_lifecycle_events', ['operation' => 'replacement', 'previous_card_id' => $card['id'], 'new_card_id' => $new['id']]);
         $this->assertDatabaseHas('card_lifecycle_events', ['operation' => 'renewal', 'previous_card_id' => $card['id'], 'new_card_id' => $new['id']]);
         foreach (['renew', 'reissue', 'deactivate'] as $action) {
-            $this->postJson('/api/v1/id-cards/'.$card['id'].'/'.$action, ['option' => 'existing', 'reason' => 'Damaged Card', 'acknowledged' => true])->assertConflict();
+            $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson('/api/v1/id-cards/'.$card['id'].'/'.$action, ['option' => 'existing', 'reason' => 'Damaged Card', 'acknowledged' => true])->assertConflict();
         }
     }
 
@@ -334,7 +334,7 @@ class SmartIdCardTest extends TestCase
         $this->postJson($url.'/reissue', ['reason' => 'Other', 'acknowledged' => false])->assertUnprocessable()->assertJsonValidationErrors('acknowledged');
         $this->postJson($url.'/reissue', ['reason' => 'invented', 'acknowledged' => true])->assertUnprocessable()->assertJsonValidationErrors('reason');
         $this->postJson($url.'/deactivate', ['reason' => '   '])->assertUnprocessable();
-        $this->postJson($url.'/renew', ['option' => 'fake'])->assertUnprocessable();
+        $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson($url.'/renew', ['option' => 'fake'])->assertUnprocessable();
         IdCard::find($card['id'])->update(['expiry_date' => CardValidity::today()->subDay()]);
         $this->postJson($url.'/reissue', ['reason' => 'Other', 'acknowledged' => true])->assertConflict();
         $this->getJson('/api/v1/id-cards/9999999')->assertNotFound();
@@ -350,7 +350,7 @@ class SmartIdCardTest extends TestCase
         $this->assertNull(IdCard::find($card['id'])->current_employee_id);
         $this->verify($card['verificationToken'])->assertJsonPath('status', 'revoked');
         foreach (['renew', 'reissue', 'deactivate'] as $action) {
-            $this->postJson('/api/v1/id-cards/'.$card['id'].'/'.$action, ['option' => 'existing', 'reason' => 'Other', 'acknowledged' => true])->assertConflict();
+            $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson('/api/v1/id-cards/'.$card['id'].'/'.$action, ['option' => 'existing', 'reason' => 'Other', 'acknowledged' => true])->assertConflict();
         }
         $new = $this->issue(Employee::find($card['employeeId']));
         $this->assertNotSame($card['id'], $new['id']);
@@ -370,7 +370,7 @@ class SmartIdCardTest extends TestCase
         $before = IdCard::find($card['id'])->getRawOriginal();
         CardLifecycleEvent::creating(fn () => throw new \RuntimeException('Intentional audit persistence failure.'));
         try {
-            $this->postJson('/api/v1/id-cards/'.$card['id'].'/'.$action, ['option' => $option, 'reason' => 'Other', 'acknowledged' => true])->assertStatus(500);
+            $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson('/api/v1/id-cards/'.$card['id'].'/'.$action, ['option' => $option, 'reason' => 'Other', 'acknowledged' => true])->assertStatus(500);
         } finally {
             Event::forget('eloquent.creating: '.CardLifecycleEvent::class);
         }
@@ -434,9 +434,10 @@ class SmartIdCardTest extends TestCase
     public function test_filters_search_safe_sorts_and_pagination_use_database_values(): void
     {
         $this->travelTo(CarbonImmutable::parse('2026-10-15 12:00:00'));
-        $employee = $this->employee(['fullName' => 'Searchable Card Holder']);
         foreach ([['active', 60, 'ACTIVE'], ['active', 30, 'EXPIRING'], ['active', 0, 'TODAY'], ['active', -1, 'EXPIRED'], ['revoked', 60, 'REVOKED'], ['replaced', 60, 'REPLACED']] as [$status,$days,$number]) {
-            IdCard::create(['employee_id' => $employee->id, 'card_number' => $number, 'issued_date' => CardValidity::today()->subDays($days + 100), 'expiry_date' => CardValidity::today()->addDays($days), 'status' => $status]);
+            $employee = $this->employee(['fullName' => 'Searchable Card Holder']);
+            $real = $this->issue($employee);
+            IdCard::find($real['id'])->update(['card_number' => $number, 'issued_date' => CardValidity::today()->subDays($days + 100), 'expiry_date' => CardValidity::today()->addDays($days), 'status' => $status, 'current_employee_id' => $status === 'active' ? $employee->id : null]);
         }
         foreach (['active' => 1, 'expiring_soon' => 2, 'expired' => 1, 'revoked' => 1, 'replaced' => 1] as $status => $count) {
             $this->getJson('/api/v1/id-cards?status='.$status)->assertOk()->assertJsonPath('meta.total', $count);
@@ -444,7 +445,7 @@ class SmartIdCardTest extends TestCase
         $this->getJson('/api/v1/id-cards?expiry=expiring')->assertJsonPath('meta.total', 2);
         $this->getJson('/api/v1/id-cards?search=REPLACED')->assertJsonPath('meta.total', 1);
         $this->getJson('/api/v1/id-cards?search='.urlencode($employee->full_name))->assertJsonPath('meta.total', 6);
-        $this->getJson('/api/v1/id-cards?search='.$employee->employee_id)->assertJsonPath('meta.total', 6);
+        $this->getJson('/api/v1/id-cards?search='.$employee->employee_id)->assertJsonPath('meta.total', 1);
         $this->getJson('/api/v1/id-cards?search=%25')->assertJsonPath('meta.total', 0);
         $this->getJson('/api/v1/id-cards?sort=expiry_asc')->assertJsonPath('data.0.number', 'EXPIRED');
         $this->getJson('/api/v1/id-cards?sort=issue_desc')->assertJsonPath('data.0.number', 'EXPIRED');
@@ -456,6 +457,6 @@ class SmartIdCardTest extends TestCase
         }
         $this->getJson('/api/v1/id-cards')->assertJsonCount(15, 'data')->assertJsonPath('meta.total', 17)->assertJsonPath('meta.lastPage', 2)->assertJsonPath('meta.perPage', 15);
         $this->getJson('/api/v1/id-cards?page=2')->assertJsonCount(2, 'data')->assertJsonPath('meta.currentPage', 2);
-        $this->getJson('/api/v1/employees')->assertOk()->assertJsonPath('meta.total', 1);
+        $this->getJson('/api/v1/employees')->assertOk()->assertJsonPath('meta.total', 6);
     }
 }

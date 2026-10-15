@@ -16,28 +16,16 @@ class IdCardController extends Controller
     public function index(Request $request)
     {
         $sorts = ['expiry_asc' => ['expiry_date', 'asc'], 'issue_desc' => ['issued_date', 'desc'], 'issue_asc' => ['issued_date', 'asc']];
-        $input = $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'search' => ['sometimes', 'nullable', 'string', 'max:254'], 'status' => ['sometimes', 'nullable', Rule::in(['active', 'expiring_soon', 'expired', 'revoked', 'replaced'])], 'expiry' => ['sometimes', 'nullable', Rule::in(['expiring', 'expired'])], 'sort' => ['sometimes', Rule::in(array_keys($sorts))]]);
+        $input = $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'search' => ['sometimes', 'nullable', 'string', 'max:254'], 'status' => ['sometimes', 'nullable', Rule::in(['active', 'expiring', 'expiring_soon', 'expired', 'revoked', 'replaced'])], 'expiry' => ['sometimes', 'nullable', Rule::in(['expiring', 'expired'])], 'sort' => ['sometimes', Rule::in(array_keys($sorts))]]);
         $query = IdCard::with('employee');
-        $today = CardValidity::today()->toDateString();
-        $limit = CardValidity::today()->addDays(30)->toDateString();
-        $status = $input['status'] ?? null;
-        if (in_array($status, ['active', 'expiring_soon', 'expired'], true)) {
-            $query->whereIn('status', ['active', 'expired']);
-            if ($status === 'active') {
-                $query->whereDate('expiry_date', '>', $limit);
-            } elseif ($status === 'expiring_soon') {
-                $query->whereBetween('expiry_date', [$today, $limit]);
-            } else {
-                $query->whereDate('expiry_date', '<', $today);
-            }
-        } elseif ($status !== null) {
-            $status === 'revoked' ? $query->whereIn('status', ['revoked', 'pending_print']) : $query->where('status', $status);
+        if (! empty($input['status'])) {
+            $query->displayStatus($input['status']);
         }
         if (($input['expiry'] ?? null) === 'expiring') {
-            $query->whereIn('status', ['active', 'expired'])->whereBetween('expiry_date', [$today, $limit]);
+            $query->displayStatus('expiring_soon');
         }
         if (($input['expiry'] ?? null) === 'expired') {
-            $query->whereIn('status', ['active', 'expired'])->whereDate('expiry_date', '<', $today);
+            $query->displayStatus('expired');
         }
         if (($search = trim($input['search'] ?? '')) !== '') {
             $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $search).'%';
@@ -47,6 +35,18 @@ class IdCardController extends Controller
         $page = $query->orderBy($column, $direction)->orderBy('id', $direction)->paginate(15);
 
         return response()->json(['data' => IdCardResource::collection($page->getCollection())->resolve($request), 'meta' => ['currentPage' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'perPage' => $page->perPage(), 'total' => $page->total()]])->header('Cache-Control', 'no-store');
+    }
+
+    public function policy()
+    {
+        $mode = config('cards.validity_policy');
+        if (! in_array($mode, ['selected_years', 'eleven_months'], true)) {
+            $mode = 'unconfigured';
+        }
+
+        return response()->json(['data' => ['mode' => $mode, 'canIssue' => $mode !== 'unconfigured', 'canRenew' => $mode !== 'unconfigured', 'validityYears' => $mode === 'selected_years' ? [1, 2] : [], 'termLabel' => match ($mode) {
+            'selected_years' => 'Selected 1-year or 2-year term','eleven_months' => '11 calendar months',default => 'Validity policy awaiting approval'
+        }]])->header('Cache-Control', 'no-store');
     }
 
     public function store(Request $request, CardLifecycle $lifecycle)
@@ -63,9 +63,10 @@ class IdCardController extends Controller
 
     public function renew(Request $request, IdCard $idCard, CardLifecycle $lifecycle)
     {
+        $operation = validator(['idempotencyKey' => $request->header('Idempotency-Key')], ['idempotencyKey' => ['required', 'string', 'regex:/^[A-Za-z0-9-]{16,100}$/D']])->validate();
         $input = $request->validate(['option' => ['required', Rule::in(['existing', 'new_physical'])], 'validityYears' => ['sometimes', 'integer', Rule::in([1, 2])]]);
 
-        return $this->record($lifecycle->renew($idCard, $input['option'], isset($input['validityYears']) ? (int) $input['validityYears'] : null, $request->user()));
+        return $this->record($lifecycle->renew($idCard, $input['option'], isset($input['validityYears']) ? (int) $input['validityYears'] : null, $request->user(), $operation['idempotencyKey']));
     }
 
     public function reissue(Request $request, IdCard $idCard, CardLifecycle $lifecycle)

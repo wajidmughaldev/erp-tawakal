@@ -9,6 +9,6 @@ import {useResource} from '@/lib/use-resource';
 function EditContent() {
  const id=useSearchParams().get('id')??'';
  const state=useResource(()=>/^[\w-]{1,100}$/.test(id)?employeesApi.get(id):Promise.reject(new Error('Select a valid employee ID.')),[id]);
- return <PortalShell><DataState {...state} retry={state.refetch}/>{state.data?.data&&<EmployeeForm key={id} mode="edit" employee={state.data.data}/>}</PortalShell>;
+ return <PortalShell><DataState {...state} retry={state.refetch}/>{state.data?.data&&<EmployeeForm key={id+state.data.etag} mode="edit" employee={state.data.data} etag={state.data.etag} onReload={state.refetch}/>}</PortalShell>;
 }
 export default function EditEmployeePage(){return <Suspense><EditContent/></Suspense>;}

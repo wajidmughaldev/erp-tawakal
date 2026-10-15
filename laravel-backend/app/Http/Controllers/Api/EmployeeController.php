@@ -25,10 +25,21 @@ class EmployeeController extends Controller
     public function index(Request $request): JsonResponse
     {
         $sorts = ['newest' => ['id', 'desc'], 'oldest' => ['id', 'asc'], 'name_asc' => ['full_name', 'asc'], 'name_desc' => ['full_name', 'desc'], 'name' => ['full_name', 'asc'], '-name' => ['full_name', 'desc'], 'displayId' => ['id', 'asc'], '-displayId' => ['id', 'desc']];
-        $input = $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'search' => ['sometimes', 'nullable', 'string', 'max:254'], 'status' => ['sometimes', 'nullable', Rule::in(Employee::STATUSES)], 'sort' => ['sometimes', 'nullable', Rule::in(array_keys($sorts))]]);
+        $input = $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'search' => ['sometimes', 'nullable', 'string', 'max:254'], 'status' => ['sometimes', 'nullable', Rule::in(Employee::STATUSES)], 'cardStatus' => ['sometimes', 'nullable', Rule::in(['active', 'expiring_soon', 'expired', 'revoked', 'replaced'])], 'expiry' => ['sometimes', 'nullable', Rule::in(['expiring', 'expired'])], 'sort' => ['sometimes', 'nullable', Rule::in(array_keys($sorts))]]);
         $query = Employee::with(['documents', 'cards']);
         if (! empty($input['status'])) {
             $query->where('status', $input['status']);
+        }
+        if (! empty($input['cardStatus'])) {
+            $status = $input['cardStatus'];
+            if (in_array($status, ['revoked', 'replaced'], true)) {
+                $query->whereDoesntHave('cards', fn ($card) => $card->eligibleCurrent())->whereHas('latestCard', fn ($card) => $card->displayStatus($status));
+            } else {
+                $query->whereHas('cards', fn ($card) => $card->displayStatus($status));
+            }
+        }
+        if (! empty($input['expiry'])) {
+            $query->whereHas('cards', fn ($card) => $card->displayStatus($input['expiry'] === 'expiring' ? 'expiring_soon' : 'expired'));
         }
         if (($search = trim($input['search'] ?? '')) !== '') {
             // shortcut: phone search decrypts at most a few hundred rows; revisit indexed protected lookup if the employee count grows substantially.

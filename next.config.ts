@@ -2,7 +2,7 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   // Keep isolated API-mocked browser tests out of the running development server's output.
-  distDir: process.env.NEXT_FRONTEND_TEST === '1' ? '.next/frontend-browser' : '.next',
+  distDir: process.env.NEXT_OUTPUT_DIR ?? (process.env.NEXT_FRONTEND_TEST === '1' ? '.next/frontend-browser' : '.next'),
   async redirects() {
     return [
       ...[

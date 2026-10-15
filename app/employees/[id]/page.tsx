@@ -38,7 +38,7 @@ export default function EmployeeDetailPage() {
         <section className="rounded-lg border border-slate-200 bg-white px-[18px] py-[18px] shadow-sm">
           <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
             <div className="flex items-center gap-4">
-              <span className="grid size-14 place-items-center rounded-full bg-slate-200 text-[16px] font-semibold text-[#123b6d]">{initials}</span>
+              <span className="grid size-14 place-items-center rounded-full bg-slate-200 text-[16px] font-semibold text-[#123b6d]">{employee.photo?<img src={employee.photo} alt="Employee photograph" className="size-full rounded-full object-cover"/>:initials}</span>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-[15px] font-semibold">{employee.name}</h1>

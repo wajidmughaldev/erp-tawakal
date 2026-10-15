@@ -20,7 +20,7 @@ class EmployeeConcurrencyTest extends TestCase
 
     protected function tearDown(): void
     {
-        foreach (['candidate_requests', 'registration_invites', 'employee_documents', 'card_lifecycle_events', 'id_cards', 'employees', 'users'] as $table) {
+        foreach (['candidate_requests', 'registration_invites', 'employee_documents', 'card_lifecycle_events', 'card_renewal_operations', 'id_cards', 'employees', 'users'] as $table) {
             DB::table($table)->delete();
         }
         parent::tearDown();
@@ -240,7 +240,7 @@ class EmployeeConcurrencyTest extends TestCase
         [$user,$card] = $this->cardFixture();
         $jobs = [];
         foreach ([$first, $second] as $action) {
-            $jobs[] = ['method' => 'POST', 'path' => '/api/v1/id-cards/'.$card['id'].'/'.$action, 'parameters' => ['option' => $option, 'reason' => 'Damaged Card', 'acknowledged' => true], 'card_policy' => 'selected_years'];
+            $jobs[] = ['method' => 'POST', 'path' => '/api/v1/id-cards/'.$card['id'].'/'.$action, 'headers' => ['Idempotency-Key' => bin2hex(random_bytes(16))], 'parameters' => ['option' => $option, 'reason' => 'Damaged Card', 'acknowledged' => true], 'card_policy' => 'selected_years'];
         }
         $results = $this->parallel($user, $jobs);
         $statuses = array_column($results, 'status');
@@ -258,5 +258,21 @@ class EmployeeConcurrencyTest extends TestCase
         $this->assertLessThanOrEqual(2, DB::table('id_cards')->count());
         $this->assertNotSame('valid', $this->postJson('/api/v1/verify-card', ['token' => $card['verificationToken']])->json('status'));
         $this->assertDatabaseHas('card_lifecycle_events', ['administrator_id' => $user->id, 'previous_card_id' => $card['id']]);
+    }
+
+    public function test_concurrent_duplicate_renewals_apply_once_and_can_be_deliberately_repeated(): void
+    {
+        [$user,$card] = $this->cardFixture();
+        $key = bin2hex(random_bytes(16));
+        $job = ['method' => 'POST', 'path' => '/api/v1/id-cards/'.$card['id'].'/renew', 'parameters' => ['option' => 'existing'], 'headers' => ['Idempotency-Key' => $key], 'card_policy' => 'selected_years'];
+        $results = $this->parallel($user, [$job, $job]);
+        $this->assertSame([200, 200], array_column($results, 'status'));
+        $this->assertSame($results[0]['body']['data']['expiryDate'], $results[1]['body']['data']['expiryDate']);
+        $this->assertSame(1, DB::table('card_lifecycle_events')->where('operation', 'renewal')->count());
+        $this->assertDatabaseCount('card_renewal_operations', 1);
+        $before = $results[0]['body']['data']['expiryDate'];
+        $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson($job['path'], $job['parameters'])->assertOk();
+        $this->assertGreaterThan($before, DB::table('id_cards')->where('id', $card['id'])->value('expiry_date'));
+        $this->assertSame(2, DB::table('card_lifecycle_events')->where('operation', 'renewal')->count());
     }
 }

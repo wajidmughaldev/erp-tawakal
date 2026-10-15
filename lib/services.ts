@@ -1,5 +1,5 @@
 import {request, queryString} from './api-client';
-import type {Employee, IDCard, EmployeeRequest, RegistrationInvite, InviteValidation, Manager, Notification, ListQuery, PageResult, Result, Dossier, EmploymentAction, PublicVerification, DashboardSummary, DocumentRecord} from './contracts';
+import type {Employee, IDCard, EmployeeRequest, RegistrationInvite, InviteValidation, Manager, Notification, ListQuery, PageResult, Result, Dossier, EmploymentAction, PublicVerification, DashboardSummary, DocumentRecord, CardPolicy, RequestSummary} from './contracts';
 const key = encodeURIComponent;
 const json = (body: unknown, method = 'POST') => ({method, body: JSON.stringify(body)});
 function resource<T>(path: string) {
@@ -14,26 +14,33 @@ export function dossierBody(dossier: Dossier, photo?: File, edit = false) {
 }
 export const employeesApi = {
   ...resource<Employee>('/employees'),
+  get: async (id: string) => {
+    let etag: string | undefined;
+    const result=await request<Result<Employee>>('/employees/'+key(id),{onResponse:headers=>{etag=headers.get('ETag')??undefined;}});
+    return {...result,etag};
+  },
   create: (dossier: Dossier, photo?: File) => request<Result<Employee>>('/employees', {method: 'POST', body: dossierBody(dossier, photo)}),
-  update: (id: string, dossier: Dossier, photo?: File) => request<Result<Employee>>(`/employees/${key(id)}`, {method: 'POST', body: dossierBody(dossier, photo, true)}),
+  update: (id: string, dossier: Dossier, photo?: File, etag?: string) => request<Result<Employee>>(`/employees/${key(id)}`, {method:'POST',headers:etag?{'If-Match':etag}:{},body:dossierBody(dossier,photo,true)}),
   action: (id: string, action: EmploymentAction) => request<Result<Employee>>(`/employees/${key(id)}/actions`, json(action)),
   documents: (id: string) => request<Result<DocumentRecord[]>>(`/employees/${key(id)}/documents`),
 };
 export const requestsApi = {
   ...resource<EmployeeRequest>('/employee-requests'),
+  summary: () => request<Result<RequestSummary>>('/employee-requests/summary'),
   submit: (token: string, dossier: Dossier, photo?: File) => {const body = dossierBody(dossier, photo); body.set('token', token); return request<Result<EmployeeRequest>>('/employee-requests', {method: 'POST', body, public: true});},
   approve: (id: string) => request<Result<EmployeeRequest>>(`/employee-requests/${key(id)}/approve`, json({})),
   reject: (id: string, reason: string) => request<Result<EmployeeRequest>>(`/employee-requests/${key(id)}/reject`, json({reason})),
 };
 export const invitesApi = {
-  ...resource<RegistrationInvite>('/registration-invites'),
+  list: (query:ListQuery={})=>request<PageResult<RegistrationInvite>>('/registration-invites'+queryString(query)),
   validate: (token: string) => request<InviteValidation>('/registration-invites/validate', {...json({token}), public: true}),
-  create: (body: {candidateName: string; designation: string; department: string; expiresAt: string}) => request<Result<RegistrationInvite>>('/registration-invites', json(body)),
+  create: (body: {candidateName: string; designation: string; department: string; expiresAt:string;roleCategory?:Dossier['roleCategory']}) => request<Result<RegistrationInvite>>('/registration-invites', json(body)),
 };
 export const cardsApi = {
   ...resource<IDCard>('/id-cards'),
-  issue: (employeeId: string, validityYears: number) => request<Result<IDCard>>('/id-cards', json({employeeId, validityYears})),
-  renew: (id: string, option: 'existing' | 'new_physical') => request<Result<IDCard>>(`/id-cards/${key(id)}/renew`, json({option})),
+  policy: () => request<Result<CardPolicy>>('/id-cards/policy'),
+  issue: (employeeId: string, validityYears?: number) => request<Result<IDCard>>('/id-cards', json({employeeId, validityYears})),
+  renew: (id:string,option:'existing'|'new_physical',idempotencyKey:string) => request<Result<IDCard>>(`/id-cards/${key(id)}/renew`, {...json({option}),headers:{'Idempotency-Key':idempotencyKey}}),
   reissue: (id: string, reason: string, acknowledged: boolean) => request<Result<IDCard>>(`/id-cards/${key(id)}/reissue`, json({reason, acknowledged})),
   deactivate: (id: string, reason: string) => request<Result<IDCard>>(`/id-cards/${key(id)}/deactivate`, json({reason})),
   verify: (token: string) => request<PublicVerification>('/verify-card', {...json({token}), public: true}),

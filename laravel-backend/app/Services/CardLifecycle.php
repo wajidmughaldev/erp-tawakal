@@ -27,10 +27,17 @@ class CardLifecycle
         });
     }
 
-    public function renew(IdCard $selected, string $option, ?int $years, User $actor): IdCard
+    public function renew(IdCard $selected, string $option, ?int $years, User $actor, string $operationKey): IdCard
     {
-        return $this->transaction(function () use ($selected, $option, $years, $actor) {
+        return $this->transaction(function () use ($selected, $option, $years, $actor, $operationKey) {
             [$employee,$card] = $this->lock($selected);
+            $keyDigest = hash('sha256', $operationKey);
+            $previous = DB::table('card_renewal_operations')->where('key_digest', $keyDigest)->first();
+            if ($previous) {
+                abort_unless($previous->administrator_id === $actor->id && $previous->card_id === $card->id && $previous->option === $option && $previous->requested_years === $years, 409, 'This renewal identifier belongs to a different operation.');
+
+                return IdCard::findOrFail($previous->result_card_id);
+            }
             $this->eligibleEmployee($employee);
             $this->eligibleCard($card);
             // Extend from the later of today and expiry; a renewal never shortens existing validity.
@@ -44,12 +51,16 @@ class CardLifecycle
                 $card->save();
                 $this->event($card, 'renewal', $actor, null, $card, $card, $previousExpiry, $card->expiry_date);
 
+                $this->recordRenewal($keyDigest, $actor, $card, $option, $years, $card);
+
                 return $card;
             }
             $this->retire($card, 'replaced');
             $new = $this->createCredential($employee, $term['expiry'], $term['policy'], $term['years'], $actor);
             $this->event($card, 'renewal', $actor, null, $card, $new, $previousExpiry, $new->expiry_date);
             $this->event($card, 'replacement', $actor, null, $card, $new, $previousExpiry, $new->expiry_date);
+
+            $this->recordRenewal($keyDigest, $actor, $card, $option, $years, $new);
 
             return $new;
         });
@@ -81,6 +92,11 @@ class CardLifecycle
 
             return $card;
         });
+    }
+
+    private function recordRenewal(string $digest, User $actor, IdCard $card, string $option, ?int $years, IdCard $result): void
+    {
+        DB::table('card_renewal_operations')->insert(['key_digest' => $digest, 'administrator_id' => $actor->id, 'card_id' => $card->id, 'option' => $option, 'requested_years' => $years, 'result_card_id' => $result->id, 'created_at' => now()]);
     }
 
     private function lock(IdCard $selected): array

@@ -28,7 +28,7 @@ function translation(text:string, language:'en'|'ur') {
 }
 const extraUrdu:Record<string,string> = {'Reset':'واپس کریں','Cancel':'منسوخ کریں','Save Employee':'ملازم محفوظ کریں','Save & Enroll Employee':'ملازم کا اندراج مکمل کریں','Submit Application':'درخواست جمع کریں','Recent Photograph':'حالیہ پاسپورٹ سائز تصویر','Step 1: Personal & Identity Information':'مرحلہ ۱: ذاتی اور شناختی معلومات','Enter employee biographical credentials, CNIC, and designation.':'ملازم کی ذاتی معلومات، شناختی کارڈ اور عہدہ درج کریں۔','Date of Registration':'تاریخ اندراج','Organization':'ادارہ','Designation':'عہدہ','Years / Duration':'سال / مدت','Address / Location':'پتہ / مقام','Phone Number':'فون نمبر','Action':'عمل','Sr #':'نمبر','Full Name':'پورا نام','Relation / Capacity':'رشتہ / حیثیت','Contact Details & Address':'رابطہ اور پتہ','Reference 1 (Primary Guarantor)':'ضامن ۱ (بنیادی)','Reference 2 (Secondary Guarantor)':'ضامن ۲ (متبادل)','Vehicle Registration Number':'گاڑی کا رجسٹریشن نمبر','Driving Licence Number':'ڈرائیونگ لائسنس نمبر','Token Tax Status':'ٹوکن ٹیکس کی حیثیت','Standard Office / Warehouse Staff':'دفتری / گودام کا عملہ','Motorcycle Field Sales Executive':'موٹر سائیکل فیلڈ سیلز ایگزیکٹو','Delivery Van Driver':'ڈلیوری وین ڈرائیور','No vehicle or driving license required for daily duty':'روزانہ ڈیوٹی کے لیے گاڑی یا لائسنس ضروری نہیں','Field sales executive operating company or personal motorbike':'کمپنی یا ذاتی موٹر سائیکل پر فیلڈ سیلز','Pharmaceutical distribution driver for delivery van':'ادویات کی تقسیم کے لیے ڈلیوری وین ڈرائیور','Select Operational Role Category':'آپریشنل شعبہ منتخب کریں','Home Landline Phone (with Area Code)':'گھر کا لینڈ لائن فون','Residential landline if available':'گھر کا فون اگر موجود ہو','e.g. Brother, Father, Spouse with active phone':'بھائی، والد یا شریک حیات کا فعال فون','Secondary emergency phone if available':'متبادل ہنگامی فون اگر موجود ہو','Enter previous employers in reverse chronological order if applicable.':'سابقہ اداروں کو تازہ ترین ملازمت سے شروع کرتے ہوئے درج کریں۔','Provide verifiable contact details for two respectable references':'دو معزز ضامن کی قابل تصدیق معلومات درج کریں۔','Required office inspection copies and legally binding affidavit.':'ضروری دفتری نقول اور قانونی حلف نامہ۔','Confirm receipt and verification of original and photocopy credentials.':'اصل اسناد اور نقول کی وصولی اور تصدیق کریں۔'};
 function T({text}:{text:string}) {return <>{translation(text,useForm().language)}</>;}
-export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'add'|'edit'|'candidate'; employee?:Employee; token?:string; permitted?:{candidateName:string;designation:string;roleCategory?:Dossier['roleCategory']}}) {
+export function EmployeeForm({mode='add', employee, token, permitted, etag, onReload}: {mode?:'add'|'edit'|'candidate'; employee?:Employee; token?:string;etag?:string;onReload?:()=>void; permitted?:{candidateName:string;designation:string;roleCategory?:Dossier['roleCategory']}}) {
   const router=useRouter();
   const [step,setStep]=useState(1);
   const [language,setLanguage]=useState<'en'|'ur'>('en');
@@ -40,6 +40,8 @@ export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'a
   const [busy,setBusy]=useState(false);
   const [result,setResult]=useState<Employee|EmployeeRequest>();
   const dirty=useRef(false);
+  const [revisionError,setRevisionError]=useState(false);
+  function reloadLatest(){if(dirty.current&&!window.confirm('Reload the latest employee and discard your unsaved changes?'))return;dirty.current=false;onReload?.();}
   const isAdd=mode!=='edit';
   const candidate=mode==='candidate';
   useEffect(()=>{const warn=(e:BeforeUnloadEvent)=>{if(dirty.current){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[]);
@@ -64,14 +66,14 @@ export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'a
     if(busy)return;
     const found=validateDossier(data,Boolean(photo||employee?.photo),language);setErrors(found);
     if(Object.keys(found).length){setStep(firstInvalidStep(found));return;}
-    setBusy(true);setError('');
+    setBusy(true);setError('');setRevisionError(false);
     try{
-      const response=candidate ? await requestsApi.submit(token!,data,photo) : mode==='edit' ? await employeesApi.update(employee!.id,data,photo) : await employeesApi.create(data,photo);
+      const response=candidate ? await requestsApi.submit(token!,data,photo) : mode==='edit' ? await employeesApi.update(employee!.id,data,photo,etag) : await employeesApi.create(data,photo);
       if(!response.data?.id)throw new Error('The server did not confirm a record identifier.');
       if(candidate && !(response.data as EmployeeRequest).trackingId)throw new Error('The server did not return a tracking ID.');
       dirty.current=false;setResult(response.data);
       if(mode==='edit')router.push('/employees/'+encodeURIComponent(response.data.id));
-    }catch(cause){if(cause instanceof ApiError && cause.status===422){const fields:Record<string,string>={};for(const [key,value] of Object.entries(cause.fields)){const field=key.replace(/^dossier\./,'');fields[field]=value.join(' ');if(field.startsWith('primaryReference.'))fields.primaryReference=value.join(' ');}setErrors(fields);setStep(firstInvalidStep(fields));}setError(cause instanceof Error?cause.message:'Unable to submit.');}
+    }catch(cause){if(cause instanceof ApiError && [412,428].includes(cause.status))setRevisionError(true);if(cause instanceof ApiError && cause.status===422){const fields:Record<string,string>={};for(const [key,value] of Object.entries(cause.fields)){const field=key.replace(/^dossier\./,'');fields[field]=value.join(' ');if(field.startsWith('primaryReference.'))fields.primaryReference=value.join(' ');}setErrors(fields);setStep(firstInvalidStep(fields));}setError(cause instanceof Error?cause.message:'Unable to submit.');}
     finally{setBusy(false);}
   }
   const translatedSteps=language==='en'?steps:[formTranslations.ur.step1,formTranslations.ur.step2,formTranslations.ur.step3,formTranslations.ur.step4,formTranslations.ur.step5];
@@ -104,7 +106,7 @@ export function EmployeeForm({mode='add', employee, token, permitted}: {mode?:'a
           <span className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-[10px] text-slate-700">{language==='ur'?'مرحلہ':'Step'} {step} {language==='ur'?'از':'of'} 5</span>
         </div>
 
-        {error && <div role="alert" className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+        {error && <div role="alert" className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}{revisionError&&onReload&&<button type="button" className="ml-3 rounded border border-red-400 px-3 py-1" onClick={reloadLatest}>Reload latest employee</button>}</div>}
         <form noValidate onSubmit={event=>{event.preventDefault();void submit();}} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="grid grid-cols-5 border-b border-slate-200 bg-white">
             {translatedSteps.map((label, index) => {

@@ -37,7 +37,29 @@ test('mutation sends decoded Sanctum CSRF cookie', async()=>{
   try{await request('/employees',{method:'POST',body:'{}'});}finally{globalThis.fetch=original;delete (globalThis as any).document;}
 });
 test('directory keeps latest credential status while current-card selection excludes revoked history',()=>{
-  const records=[{id:'older',status:'active',issueDate:'2026-01-01'},{id:'newer',status:'revoked',issueDate:'2026-10-01'}] as IDCard[];
+  const records=[{id:'older',status:'active',issueDate:'2026-01-01',verificationToken:'mock'},{id:'newer',status:'revoked',issueDate:'2026-10-01'}] as IDCard[];
   assert.equal(latestCard(records)?.id,'newer');assert.equal(currentCard(records)?.id,'older');
   assert.equal(currentCard([records[1]]),undefined);assert.equal(latestCard([]),undefined);
+});
+
+
+test('anonymous public POST coalesces CSRF bootstrap and sends the decoded cookie',async()=>{
+  process.env.NEXT_PUBLIC_API_BASE_URL='https://api.example.test';const original=globalThis.fetch;
+  const document={cookie:''};Object.defineProperty(globalThis,'document',{configurable:true,value:document});let bootstraps=0,writes=0;
+  globalThis.fetch=async(url,options)=>{if(String(url).endsWith('/sanctum/csrf-cookie')){bootstraps++;await new Promise(resolve=>setTimeout(resolve,5));document.cookie='XSRF-TOKEN=anonymous%3Dcsrf';return new Response(null,{status:204});}writes++;assert.equal(new Headers(options?.headers).get('X-XSRF-TOKEN'),'anonymous=csrf');return Response.json({status:'invalid'});};
+  try{await Promise.all([request('/verify-card',{public:true,method:'POST',body:'{}'}),request('/registration-invites/validate',{public:true,method:'POST',body:'{}'})]);assert.equal(bootstraps,1);assert.equal(writes,2);}finally{globalThis.fetch=original;delete (globalThis as any).document;}
+});
+test('419 refreshes security state once without replaying a mutation',async()=>{
+  const original=globalThis.fetch;Object.defineProperty(globalThis,'document',{configurable:true,value:{cookie:'XSRF-TOKEN=old'}});let writes=0,bootstraps=0;
+  globalThis.fetch=async(url)=>{if(String(url).endsWith('/sanctum/csrf-cookie')){bootstraps++;return new Response(null,{status:204});}writes++;return Response.json({},{status:419});};
+  try{await assert.rejects(request('/employee-requests',{public:true,method:'POST',body:'{}'}),(error:ApiError)=>error.status===419);assert.equal(writes,1);assert.equal(bootstraps,1);}finally{globalThis.fetch=original;delete (globalThis as any).document;}
+});
+test('failed CSRF bootstrap cannot send a public mutation',async()=>{
+  const original=globalThis.fetch;Object.defineProperty(globalThis,'document',{configurable:true,value:{cookie:''}});let writes=0;
+  globalThis.fetch=async(url)=>{if(!String(url).endsWith('/sanctum/csrf-cookie'))writes++;return Response.json({},{status:503});};
+  try{await assert.rejects(request('/verify-card',{public:true,method:'POST',body:'{}'}),(error:ApiError)=>error.message.includes('initialize'));assert.equal(writes,0);}finally{globalThis.fetch=original;delete (globalThis as any).document;}
+});
+test('legacy missing-token cards are historical, never current QR credentials',()=>{
+  const legacy={id:'legacy',status:'active',expiryDate:'2030-01-01',issueDate:'2026-01-01',verificationToken:'',credentialState:'historical'} as IDCard;
+  assert.equal(cardLabel(legacy),'Historical / No QR');assert.equal(currentCard([legacy]),undefined);
 });

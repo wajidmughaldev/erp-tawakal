@@ -39,4 +39,9 @@ class Employee extends Model
     {
         return '"employee-'.$this->id.'-v'.$this->revision.'"';
     }
+
+    public function latestCard()
+    {
+        return $this->hasOne(IdCard::class)->latestOfMany();
+    }
 }

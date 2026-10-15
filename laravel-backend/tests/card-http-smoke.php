@@ -5,6 +5,7 @@ use App\Models\Employee;
 use App\Models\IdCard;
 use App\Models\User;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Support\Facades\DB;
 use Tests\Fixtures\EmployeeDossier;
 
 require __DIR__.'/../vendor/autoload.php';
@@ -30,6 +31,9 @@ $request = function ($curl, string $method, string $path, ?array $body = null, b
     $headers = ['Accept: application/json', 'Origin: http://localhost:3000'];
     if (! $multipart && $body !== null) {
         $headers[] = 'Content-Type: application/json';
+    }
+    if (str_ends_with($path, '/renew')) {
+        $headers[] = 'Idempotency-Key: '.bin2hex(random_bytes(16));
     }
     if ($etag !== null) {
         $headers[] = 'If-Match: '.$etag;
@@ -126,6 +130,7 @@ try {
     // Do not print tokens, private payloads or HTTP response bodies on failure.
 } finally {
     if ($employeeId !== null) {
+        DB::table('card_renewal_operations')->whereIn('card_id', IdCard::withTrashed()->where('employee_id', $employeeId)->select('id'))->delete();
         CardLifecycleEvent::where('employee_id', $employeeId)->getQuery()->delete();
         IdCard::withTrashed()->where('employee_id', $employeeId)->forceDelete();
         Employee::withTrashed()->whereKey($employeeId)->forceDelete();
