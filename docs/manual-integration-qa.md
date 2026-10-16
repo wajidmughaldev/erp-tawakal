@@ -101,7 +101,10 @@ Record PASS or FAIL against each item; do not put passwords, full CNICs, invitat
 | ___ | Submit an Urdu candidate with an office role; check RTL labels. Administrator rejects with a reason; no employee is created. Expired/malformed links show useful errors. |
 | ___ | With policy unconfigured, issuance and renewal are disabled with an explanation. No fake success appears. |
 | ___ | For fictional QA only, run `php tests/integration/backend.php policy selected_years`; issue a card, inspect official data and photograph, preview/print it, and verify its QR publicly. Then test `eleven_months`: label changes and no years selector appears. |
-| ___ | Renew existing card: same QR, one extension. A transport replay using the same Idempotency-Key must not extend twice. A deliberate new action uses a new key. |
+| ___ | Renew existing card: compare the displayed current/proposed expiry, then explicitly confirm. Same QR, one extension. A transport replay must use the same Idempotency-Key and original If-Match and must not extend twice. |
+| ___ | Lose a renewal response, then refresh. The unresolved operation is restored without sending a write. Explicit Retry / reconcile uses the original key/revision; confirmed success clears its sessionStorage entry. No private data or employee-edit revision is stored. |
+| ___ | Open two renewal tabs on the same revision. Confirm A, then B: B receives 412 without extending. Explicitly discard the unapplied attempt, review updated expiry/preview, and confirm a deliberate new renewal with a fresh revision and key. |
+| ___ | A card expiring today or in 1/15/30 days remains Active and also Expiring Soon. Day 31 is Active only; yesterday is Expired. Dashboard and both directories agree, including combined filters. Do not add Active and Expiring counts. |
 | ___ | Reissue a lost card: new QR, unchanged expiry, old QR invalid. New physical renewal replaces the old QR and extends validity. Permanent deactivation invalidates the current QR. Historical records remain visible. |
 | ___ | A legacy card without a modern verification credential is marked historical and cannot present an active QR or lifecycle actions. |
 | ___ | Dashboard totals match actual stored employees, requests and eligible cards, including zero values. Managers, employment actions and notifications remain unavailable. |

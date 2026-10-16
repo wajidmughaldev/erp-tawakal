@@ -34,6 +34,8 @@ $request = function ($curl, string $method, string $path, ?array $body = null, b
     }
     if (str_ends_with($path, '/renew')) {
         $headers[] = 'Idempotency-Key: '.bin2hex(random_bytes(16));
+        preg_match('~/id-cards/([0-9]+)/renew$~', $path, $match);
+        $headers[] = 'If-Match: '.IdCard::findOrFail($match[1])->etag();
     }
     if ($etag !== null) {
         $headers[] = 'If-Match: '.$etag;

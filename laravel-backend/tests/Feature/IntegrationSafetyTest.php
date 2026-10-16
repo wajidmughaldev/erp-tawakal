@@ -63,6 +63,8 @@ class IntegrationSafetyTest extends TestCase
     {
         $card = $this->card($this->employee());
         $url = '/api/v1/id-cards/'.$card['id'].'/renew';
+        $etag = IdCard::find($card['id'])->etag();
+        $this->withHeader('If-Match', $etag);
         $key = bin2hex(random_bytes(16));
         $this->postJson($url, ['option' => 'existing'])->assertUnprocessable()->assertJsonValidationErrors('idempotencyKey');
         $first = $this->withHeader('Idempotency-Key', $key)->postJson($url, ['option' => 'existing'])->assertOk()->json('data');
@@ -70,10 +72,10 @@ class IntegrationSafetyTest extends TestCase
         $this->assertSame(1, CardLifecycleEvent::where('operation', 'renewal')->count());
         $this->postJson($url, ['option' => 'new_physical'])->assertConflict();
         $this->assertDatabaseCount('id_cards', 1);
-        $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson($url, ['option' => 'existing'])->assertOk();
+        $this->withHeader('If-Match', IdCard::find($card['id'])->etag())->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson($url, ['option' => 'existing'])->assertOk();
         $this->assertSame(2, CardLifecycleEvent::where('operation', 'renewal')->count());
         $this->assertDatabaseCount('card_renewal_operations', 2);
-        $this->withHeader('Idempotency-Key', $key)->postJson($url, ['option' => 'existing'])->assertOk();
+        $this->withHeader('If-Match', $etag)->withHeader('Idempotency-Key', $key)->postJson($url, ['option' => 'existing'])->assertOk();
         $this->assertSame(2, CardLifecycleEvent::where('operation', 'renewal')->count());
     }
 
@@ -81,6 +83,8 @@ class IntegrationSafetyTest extends TestCase
     {
         $card = $this->card($this->employee());
         $url = '/api/v1/id-cards/'.$card['id'].'/renew';
+        $etag = IdCard::find($card['id'])->etag();
+        $this->withHeader('If-Match', $etag);
         $key = bin2hex(random_bytes(16));
         $first = $this->withHeader('Idempotency-Key', $key)->postJson($url, ['option' => 'new_physical'])->assertOk()->json('data');
         $this->postJson($url, ['option' => 'new_physical'])->assertOk()->assertJsonPath('data.id', $first['id']);
@@ -93,6 +97,8 @@ class IntegrationSafetyTest extends TestCase
     {
         $card = $this->card($this->employee());
         $url = '/api/v1/id-cards/'.$card['id'].'/renew';
+        $etag = IdCard::find($card['id'])->etag();
+        $this->withHeader('If-Match', $etag);
         $key = bin2hex(random_bytes(16));
         config(['cards.validity_policy' => 'unconfigured']);
         $this->withHeader('Idempotency-Key', $key)->postJson($url, ['option' => 'existing'])->assertStatus(503);
@@ -124,13 +130,13 @@ class IntegrationSafetyTest extends TestCase
         $deleted->delete();
         $legacy = $this->employee('Filtered Legacy');
         IdCard::create(['employee_id' => $legacy->id, 'card_number' => 'LEGACY-ACTIVE-NO-QR', 'qr_code_hash' => bin2hex(random_bytes(32)), 'issued_date' => $today, 'expiry_date' => $today->addYear(), 'status' => 'active']);
-        foreach (['active' => 1, 'expiring_soon' => 2, 'expired' => 1, 'revoked' => 1] as $status => $count) {
+        foreach (['active' => 3, 'expiring_soon' => 2, 'expired' => 1, 'revoked' => 1] as $status => $count) {
             $this->getJson('/api/v1/employees?search=Filtered&status=active&cardStatus='.$status)->assertOk()->assertJsonPath('meta.total', $count);
             $this->getJson('/api/v1/id-cards?status='.$status)->assertJsonPath('meta.total', $count);
         }
-        $this->getJson('/api/v1/employees?cardStatus=active&expiry=expiring')->assertJsonPath('meta.total', 0);
+        $this->getJson('/api/v1/employees?cardStatus=active&expiry=expiring')->assertJsonPath('meta.total', 2);
         $this->getJson('/api/v1/employees?expiry=expiring')->assertJsonPath('meta.total', 2);
-        $summary = $this->getJson('/api/v1/dashboard/summary')->assertOk()->assertJsonPath('data.totalEmployees', 7)->assertJsonPath('data.activeEmployees', 6)->assertJsonPath('data.activeCards', 1)->assertJsonPath('data.expiringCards', 2)->assertJsonPath('data.expiredCards', 1)->assertJsonPath('data.revokedCards', 1)->json('data');
+        $summary = $this->getJson('/api/v1/dashboard/summary')->assertOk()->assertJsonPath('data.totalEmployees', 7)->assertJsonPath('data.activeEmployees', 6)->assertJsonPath('data.activeCards', 3)->assertJsonPath('data.expiringCards', 2)->assertJsonPath('data.expiredCards', 1)->assertJsonPath('data.revokedCards', 1)->json('data');
         foreach ($summary['expiring'] as $item) {
             $this->assertArrayNotHasKey('verificationToken', $item);
             $this->assertArrayNotHasKey('dossier', $item);
@@ -152,8 +158,8 @@ class IntegrationSafetyTest extends TestCase
         $invite = $this->postJson('/api/v1/registration-invites', ['candidateName' => $dossier['fullName'], 'designation' => $dossier['designation'], 'department' => 'QA', 'expiresAt' => now()->addHour()->toIso8601String()])->assertCreated()->json('data');
         $this->getJson('/api/v1/employee-requests/summary')->assertJsonPath('data.activeInvitations', 1)->assertJsonPath('data.pending', 0);
         $request = $this->postJson('/api/v1/employee-requests', ['token' => $invite['token'], 'dossier' => json_encode($dossier)])->assertCreated()->json('data');
-        $this->getJson('/api/v1/employee-requests/summary')->assertJsonPath('data.activeInvitations', 0)->assertJsonPath('data.fieldRoles',1)->assertJsonPath('data.pending',1);
-        $this->postJson('/api/v1/employee-requests/'.$request['id'].'/reject',['reason' => 'QA rejection'])->assertOk();
-        $this->getJson('/api/v1/employee-requests/summary')->assertJsonPath('data.rejected',1)->assertJsonPath('data.pending',0);
+        $this->getJson('/api/v1/employee-requests/summary')->assertJsonPath('data.activeInvitations', 0)->assertJsonPath('data.fieldRoles', 1)->assertJsonPath('data.pending', 1);
+        $this->postJson('/api/v1/employee-requests/'.$request['id'].'/reject', ['reason' => 'QA rejection'])->assertOk();
+        $this->getJson('/api/v1/employee-requests/summary')->assertJsonPath('data.rejected', 1)->assertJsonPath('data.pending', 0);
     }
 }

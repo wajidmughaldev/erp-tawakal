@@ -30,6 +30,11 @@ test('expiry derives from dates and revocation wins', () => {
   assert.equal(cardLabel({status:'active',expiryDate:'2026-10-13'},now),'Expired');
   assert.equal(cardLabel({status:'revoked',expiryDate:'2027-01-01'},now),'Revoked');
 });
+test('card badges use the server application date even across browser timezone boundaries',()=>{
+ const card={status:'active' as const,expiryDate:'2026-02-01',asOfDate:'2026-02-01'};
+ for(const now of [new Date('2026-01-31T23:30:00Z'),new Date('2026-02-02T01:00:00Z')])assert.equal(cardLabel(card,now),'Expiring Soon');
+ assert.equal(daysToExpiry('2026-02-01',new Date('2026-01-31T23:30:00Z'),card.asOfDate),0);
+});
 test('mutation sends decoded Sanctum CSRF cookie', async()=>{
   const original=globalThis.fetch;
   Object.defineProperty(globalThis,'document',{configurable:true,value:{cookie:'XSRF-TOKEN=csrf%3Dvalue'}});

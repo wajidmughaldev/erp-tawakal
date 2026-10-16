@@ -17,7 +17,7 @@ class IdCard extends Model
 
     protected function casts(): array
     {
-        return ['issued_date' => 'immutable_date', 'expiry_date' => 'immutable_date', 'last_verified_at' => 'datetime', 'verification_token' => 'encrypted', 'validity_years' => 'integer'];
+        return ['issued_date' => 'immutable_date', 'expiry_date' => 'immutable_date', 'last_verified_at' => 'datetime', 'verification_token' => 'encrypted', 'validity_years' => 'integer', 'revision' => 'integer'];
     }
 
     public function employee()
@@ -35,6 +35,11 @@ class IdCard extends Model
         return $this->status === 'active' && $this->verification_token_digest !== null && $this->current_employee_id === $this->employee_id && ! $this->trashed();
     }
 
+    public function etag(): string
+    {
+        return '"card-'.$this->id.'-v'.$this->revision.'"';
+    }
+
     public function scopeEligibleCurrent($query)
     {
         return $query->where('id_cards.status', 'active')->whereNotNull('id_cards.verification_token_digest')->whereColumn('id_cards.current_employee_id', 'id_cards.employee_id')->whereHas('employee', fn ($employee) => $employee->whereNull('employees.deleted_at')->where('employees.status', 'active'));
@@ -48,7 +53,7 @@ class IdCard extends Model
             $query->eligibleCurrent();
 
             return match ($status) {
-                'active' => $query->whereDate('id_cards.expiry_date', '>', $limit),'expired' => $query->whereDate('id_cards.expiry_date', '<', $today),default => $query->whereBetween('id_cards.expiry_date', [$today, $limit])
+                'active' => $query->whereDate('id_cards.expiry_date', '>=', $today),'expired' => $query->whereDate('id_cards.expiry_date', '<', $today),default => $query->whereBetween('id_cards.expiry_date', [$today, $limit])
             };
         }
 

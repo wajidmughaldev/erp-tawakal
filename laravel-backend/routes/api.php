@@ -33,6 +33,7 @@ Route::prefix('v1')->group(function () {
         Route::post('id-cards', [IdCardController::class, 'store']);
         Route::get('id-cards/{idCard}', [IdCardController::class, 'show']);
         Route::post('id-cards/{idCard}/renew', [IdCardController::class, 'renew']);
+        Route::get('id-cards/{idCard}/renewal-preview', [IdCardController::class, 'renewalPreview']);
         Route::post('id-cards/{idCard}/reissue', [IdCardController::class, 'reissue']);
         Route::post('id-cards/{idCard}/deactivate', [IdCardController::class, 'deactivate']);
     });

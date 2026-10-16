@@ -16,7 +16,8 @@ export type EmploymentEvent = {id: string; title: string; date: string; descript
 export type Employee = {id: string; displayId: string; name: string; designation: string; department: string; phone: string; status: EmployeeStatus; photo?: string; dossier: Dossier; documents: DocumentRecord[]; history: EmploymentEvent[]; cards: IDCard[]};
 export type CardPolicy = {mode:'unconfigured'|'selected_years'|'eleven_months';canIssue:boolean;canRenew:boolean;validityYears:number[];termLabel:string};
 export type RequestSummary = {total:number;pending:number;approved:number;rejected:number;fieldRoles:number;activeInvitations:number};
-export type IDCard = {credentialState?:'current'|'historical'|'ineligible';id: string; number: string; employeeId: string; employee: {displayId: string; name: string; designation: string; department: string; bloodGroup?: string; photo?: string}; status: CardStatus; issueDate: string; expiryDate: string; verificationToken: string; issuedBy: string};
+export type RenewalPreview = {currentExpiry:string;proposedExpiry:string;option:'existing'|'new_physical';validityYears:number|null;policy:'selected_years'|'eleven_months'};
+export type IDCard = {asOfDate?:string;credentialState?:'current'|'historical'|'ineligible';id: string; number: string; employeeId: string; employee: {displayId: string; name: string; designation: string; department: string; bloodGroup?: string; photo?: string}; status: CardStatus; issueDate: string; expiryDate: string; verificationToken: string; issuedBy: string};
 export type EmployeeRequest = {id: string; trackingId: string; status: 'pending' | 'approved' | 'rejected'; submittedAt: string; dossier: Dossier; photo?: string; documents: DocumentRecord[]; employeeId?: string; rejectionReason?: string};
 export type RegistrationInvite = {id: string; candidateName: string; designation: string; department: string; roleCategory?: Dossier['roleCategory']; expiresAt: string; status: 'valid' | 'expired' | 'used' | 'invalid'; token?: string};
 export type InviteValidation = {status: RegistrationInvite['status']; invite?: RegistrationInvite};
@@ -29,12 +30,12 @@ export type EmploymentAction = {type: 'transfer'; department: string; location: 
 export type PublicVerification = {status: 'valid' | 'expiring' | 'expired' | 'revoked' | 'invalid'; message: string; card?: {number: string; employeeName: string; employeeDisplayId: string; designation: string; photo?: string; issueDate: string; expiryDate: string}};
 export type DashboardSummary = {totalEmployees: number; activeEmployees: number; resignedEmployees: number; activeCards: number; revokedCards: number; expiringCards: number; expiredCards: number; managerCount: number; pendingRequests: number; expiring: Omit<IDCard,'verificationToken'>[]};
 
-export function cardLabel(card: Pick<IDCard,'status'|'expiryDate'> & Partial<Pick<IDCard,'verificationToken'|'credentialState'>>, now = new Date()) {
+export function cardLabel(card: Pick<IDCard,'status'|'expiryDate'> & Partial<Pick<IDCard,'verificationToken'|'credentialState'|'asOfDate'>>, now = new Date()) {
   if (card.status === 'replaced') return 'Replaced';
   if (card.status === 'revoked') return 'Revoked';
   if (card.credentialState==='historical'||('verificationToken' in card && !card.verificationToken && card.credentialState!=='current')) return 'Historical / No QR';
   if (card.credentialState==='ineligible') return 'Ineligible';
-  const days = daysToExpiry(card.expiryDate, now);
+  const days = daysToExpiry(card.expiryDate, now, card.asOfDate);
   if (days === null) return 'Unknown';
   return days < 0 ? 'Expired' : days <= 30 ? 'Expiring Soon' : 'Active';
 }
@@ -44,9 +45,9 @@ export function currentCard(cards: IDCard[] = []) {
 export function latestCard(cards: IDCard[] = []) {
   return [...cards].sort((a,b) => Date.parse(b.issueDate) - Date.parse(a.issueDate))[0];
 }
-export function daysToExpiry(date: string, now = new Date()) {
+export function daysToExpiry(date: string, now = new Date(), asOfDate?:string) {
   const end = Date.parse(`${date.slice(0, 10)}T00:00:00Z`);
-  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const today = asOfDate ? Date.parse(asOfDate+'T00:00:00Z') : Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
   return Number.isNaN(end) ? null : Math.round((end - today) / 86400000);
 }
 export const displayStatus = (status: string) => status.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());

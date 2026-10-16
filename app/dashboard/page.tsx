@@ -14,10 +14,10 @@ export default function DashboardPage() {
     {label:'Total Employees',value:summary?.totalEmployees,helper:'All departments',href:'/employees',valueClass:'text-slate-950',borderClass:''},
     {label:'Active Employees',value:summary?.activeEmployees,helper:'Active roster',href:'/employees?status=active',valueClass:'text-emerald-700',borderClass:''},
     {label:'Resigned Employees',value:summary?.resignedEmployees,helper:'Employment status',href:'/employees?status=resigned',valueClass:'text-slate-500',borderClass:''},
-    {label:'Expiring ID Cards',value:summary?.expiringCards,helper:'Within next 30 days',href:'/id-cards?status=expiring_soon',valueClass:'text-amber-700',borderClass:'border-l-2 border-l-amber-400'},
+    {label:'Expiring ID Cards',value:summary?.expiringCards,helper:'Within next 30 days · Active Cards: '+(summary?.activeCards??'—'),href:'/id-cards?status=expiring_soon',valueClass:'text-amber-700',borderClass:'border-l-2 border-l-amber-400'},
     {label:'Expired ID Cards',value:summary?.expiredCards,helper:'Action required',href:'/id-cards?status=expired',valueClass:'text-rose-600',borderClass:'border-l-2 border-l-rose-500'}
   ];
-  const expiringCards = (summary?.expiring ?? []).map(item => ({card:item.number,id:item.id,name:item.employee.name,employeeId:item.employee.displayId,initials:item.employee.name.slice(0,2),expiry:item.expiryDate,remaining:daysToExpiry(item.expiryDate)+' Days'}));
+  const expiringCards = (summary?.expiring ?? []).map(item => ({card:item.number,id:item.id,name:item.employee.name,employeeId:item.employee.displayId,initials:item.employee.name.slice(0,2),expiry:item.expiryDate,remaining:daysToExpiry(item.expiryDate,new Date(),item.asOfDate)+' Days'}));
   return (
     <PortalShell>
       <div className="min-h-[calc(100vh-124px)] bg-[#f4f7fb] text-slate-950">

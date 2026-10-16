@@ -27,31 +27,48 @@ class CardLifecycle
         });
     }
 
-    public function renew(IdCard $selected, string $option, ?int $years, User $actor, string $operationKey): IdCard
+    public function preview(IdCard $card, string $option, ?int $years): array
     {
-        return $this->transaction(function () use ($selected, $option, $years, $actor, $operationKey) {
+        $term = $this->renewalTerm($card, $years);
+
+        return ['currentExpiry' => $card->expiry_date->toDateString(), 'proposedExpiry' => $term['expiry']->toDateString(), 'option' => $option, 'validityYears' => $years, 'policy' => $term['policy']];
+    }
+
+    private function renewalTerm(IdCard $card, ?int $years): array
+    {
+        $this->eligibleEmployee($card->employee);
+        $this->eligibleCard($card);
+        $base = $card->expiry_date->greaterThan(CardValidity::today()) ? $card->expiry_date : CardValidity::today();
+
+        return CardValidity::calculate($base, $years ?? $card->validity_years);
+    }
+
+    public function renew(IdCard $selected, string $option, ?int $years, User $actor, string $operationKey, ?string $ifMatch): IdCard
+    {
+        return $this->transaction(function () use ($selected, $option, $years, $actor, $operationKey, $ifMatch) {
             [$employee,$card] = $this->lock($selected);
             $keyDigest = hash('sha256', $operationKey);
             $previous = DB::table('card_renewal_operations')->where('key_digest', $keyDigest)->first();
             if ($previous) {
-                abort_unless($previous->administrator_id === $actor->id && $previous->card_id === $card->id && $previous->option === $option && $previous->requested_years === $years, 409, 'This renewal identifier belongs to a different operation.');
+                abort_unless($previous->original_revision !== null && $ifMatch === '"card-'.$card->id.'-v'.$previous->original_revision.'"' && $previous->administrator_id === $actor->id && $previous->card_id === $card->id && $previous->option === $option && $previous->requested_years === $years, 409, 'This renewal identifier belongs to a different operation or cannot be safely reconciled.');
 
                 return IdCard::findOrFail($previous->result_card_id);
             }
-            $this->eligibleEmployee($employee);
-            $this->eligibleCard($card);
-            // Extend from the later of today and expiry; a renewal never shortens existing validity.
-            $base = $card->expiry_date->greaterThan(CardValidity::today()) ? $card->expiry_date : CardValidity::today();
-            $term = CardValidity::calculate($base, $years ?? $card->validity_years);
+            abort_if($ifMatch === null || $ifMatch === '', 428, 'Reload the card to obtain its revision before renewing.');
+            abort_unless($ifMatch === $card->etag(), 412, 'The card changed. Reload and review the latest expiry before a new renewal.');
+            $card->setRelation('employee', $employee);
+            $term = $this->renewalTerm($card, $years);
+            $originalRevision = $card->revision;
             $previousExpiry = $card->expiry_date;
             if ($option === 'existing') {
                 $card->expiry_date = $term['expiry'];
                 $card->validity_policy = $term['policy'];
                 $card->validity_years = $term['years'];
+                $card->revision++;
                 $card->save();
                 $this->event($card, 'renewal', $actor, null, $card, $card, $previousExpiry, $card->expiry_date);
 
-                $this->recordRenewal($keyDigest, $actor, $card, $option, $years, $card);
+                $this->recordRenewal($keyDigest, $actor, $card, $option, $years, $card, $originalRevision);
 
                 return $card;
             }
@@ -60,7 +77,7 @@ class CardLifecycle
             $this->event($card, 'renewal', $actor, null, $card, $new, $previousExpiry, $new->expiry_date);
             $this->event($card, 'replacement', $actor, null, $card, $new, $previousExpiry, $new->expiry_date);
 
-            $this->recordRenewal($keyDigest, $actor, $card, $option, $years, $new);
+            $this->recordRenewal($keyDigest, $actor, $card, $option, $years, $new, $originalRevision);
 
             return $new;
         });
@@ -94,9 +111,9 @@ class CardLifecycle
         });
     }
 
-    private function recordRenewal(string $digest, User $actor, IdCard $card, string $option, ?int $years, IdCard $result): void
+    private function recordRenewal(string $digest, User $actor, IdCard $card, string $option, ?int $years, IdCard $result, int $originalRevision): void
     {
-        DB::table('card_renewal_operations')->insert(['key_digest' => $digest, 'administrator_id' => $actor->id, 'card_id' => $card->id, 'option' => $option, 'requested_years' => $years, 'result_card_id' => $result->id, 'created_at' => now()]);
+        DB::table('card_renewal_operations')->insert(['key_digest' => $digest, 'administrator_id' => $actor->id, 'card_id' => $card->id, 'option' => $option, 'requested_years' => $years, 'original_revision' => $originalRevision, 'result_card_id' => $result->id, 'created_at' => now()]);
     }
 
     private function lock(IdCard $selected): array
@@ -121,13 +138,14 @@ class CardLifecycle
     {
         $card->status = $status;
         $card->current_employee_id = null;
+        $card->revision++;
         $card->save();
     }
 
     private function createCredential(Employee $employee, $expiry, ?string $policy, ?int $years, User $actor): IdCard
     {
         $token = CardToken::generate();
-        $card = IdCard::create(['employee_id' => $employee->id, 'current_employee_id' => $employee->id, 'card_number' => null, 'qr_code_hash' => null, 'verification_token_digest' => CardToken::digest($token), 'verification_token' => $token, 'issued_date' => CardValidity::today(), 'expiry_date' => $expiry, 'status' => 'active', 'printed_by' => $actor->name, 'issued_by' => $actor->id, 'validity_policy' => $policy, 'validity_years' => $years]);
+        $card = IdCard::create(['revision' => 1, 'employee_id' => $employee->id, 'current_employee_id' => $employee->id, 'card_number' => null, 'qr_code_hash' => null, 'verification_token_digest' => CardToken::digest($token), 'verification_token' => $token, 'issued_date' => CardValidity::today(), 'expiry_date' => $expiry, 'status' => 'active', 'printed_by' => $actor->name, 'issued_by' => $actor->id, 'validity_policy' => $policy, 'validity_years' => $years]);
         $base = 'CARD-'.$card->issued_date->format('Y').'-'.str_pad((string) $card->id, 6, '0', STR_PAD_LEFT);
         $number = $base;
         $suffix = 0;

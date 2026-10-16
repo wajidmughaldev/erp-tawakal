@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\CardValidity;
 use App\Support\EmployeeFiles;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -18,6 +19,7 @@ class IdCardResource extends JsonResource
         };
 
         return [
+            'asOfDate' => CardValidity::today()->toDateString(),
             'credentialState' => $this->verification_token_digest === null ? 'historical' : ($this->resource->isCurrent() && ! $employee->trashed() && $employee->status === 'active' ? 'current' : 'ineligible'),
             'id' => (string) $this->id, 'number' => $this->card_number, 'employeeId' => (string) $this->employee_id,
             'employee' => ['displayId' => $employee->employee_id, 'name' => $employee->full_name, 'designation' => $employee->designation, 'department' => $employee->department ?? '', 'bloodGroup' => $employee->dossier['bloodGroup'] ?? '', ...($photo ? ['photo' => $photo] : [])],

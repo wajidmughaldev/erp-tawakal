@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\CandidateRequest;
 use App\Models\Employee;
+use App\Models\IdCard;
 use App\Models\RegistrationInvite;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
@@ -240,16 +241,16 @@ class EmployeeConcurrencyTest extends TestCase
         [$user,$card] = $this->cardFixture();
         $jobs = [];
         foreach ([$first, $second] as $action) {
-            $jobs[] = ['method' => 'POST', 'path' => '/api/v1/id-cards/'.$card['id'].'/'.$action, 'headers' => ['Idempotency-Key' => bin2hex(random_bytes(16))], 'parameters' => ['option' => $option, 'reason' => 'Damaged Card', 'acknowledged' => true], 'card_policy' => 'selected_years'];
+            $jobs[] = ['method' => 'POST', 'path' => '/api/v1/id-cards/'.$card['id'].'/'.$action, 'headers' => ['If-Match' => IdCard::find($card['id'])->etag(), 'Idempotency-Key' => bin2hex(random_bytes(16))], 'parameters' => ['option' => $option, 'reason' => 'Damaged Card', 'acknowledged' => true], 'card_policy' => 'selected_years'];
         }
         $results = $this->parallel($user, $jobs);
         $statuses = array_column($results, 'status');
         sort($statuses);
         // Existing renewal retains the same credential; renewal then reissue is also a valid serial outcome.
         if ($option === 'existing') {
-            $this->assertContains($statuses, [[200, 200], [200, 409]]);
+            $this->assertContains($statuses, [[200, 200], [200, 412]]);
         } else {
-            $this->assertSame([200, 409], $statuses);
+            $this->assertContains($statuses, [[200, 409], [200, 412]]);
         }
         $current = DB::table('id_cards')->whereNotNull('current_employee_id')->get();
         $this->assertLessThanOrEqual(1, $current->count());
@@ -264,15 +265,30 @@ class EmployeeConcurrencyTest extends TestCase
     {
         [$user,$card] = $this->cardFixture();
         $key = bin2hex(random_bytes(16));
-        $job = ['method' => 'POST', 'path' => '/api/v1/id-cards/'.$card['id'].'/renew', 'parameters' => ['option' => 'existing'], 'headers' => ['Idempotency-Key' => $key], 'card_policy' => 'selected_years'];
+        $job = ['method' => 'POST', 'path' => '/api/v1/id-cards/'.$card['id'].'/renew', 'parameters' => ['option' => 'existing'], 'headers' => ['If-Match' => IdCard::find($card['id'])->etag(), 'Idempotency-Key' => $key], 'card_policy' => 'selected_years'];
         $results = $this->parallel($user, [$job, $job]);
         $this->assertSame([200, 200], array_column($results, 'status'));
         $this->assertSame($results[0]['body']['data']['expiryDate'], $results[1]['body']['data']['expiryDate']);
         $this->assertSame(1, DB::table('card_lifecycle_events')->where('operation', 'renewal')->count());
         $this->assertDatabaseCount('card_renewal_operations', 1);
         $before = $results[0]['body']['data']['expiryDate'];
-        $this->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson($job['path'], $job['parameters'])->assertOk();
+        $this->withHeader('If-Match', IdCard::find($card['id'])->etag())->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson($job['path'], $job['parameters'])->assertOk();
         $this->assertGreaterThan($before, DB::table('id_cards')->where('id', $card['id'])->value('expiry_date'));
         $this->assertSame(2, DB::table('card_lifecycle_events')->where('operation', 'renewal')->count());
+    }
+
+    public function test_concurrent_different_keys_with_same_revision_allow_one_renewal(): void
+    {
+        [$user,$card] = $this->cardFixture();
+        $job = ['method' => 'POST', 'path' => '/api/v1/id-cards/'.$card['id'].'/renew', 'parameters' => ['option' => 'existing'], 'headers' => ['If-Match' => IdCard::find($card['id'])->etag(), 'Idempotency-Key' => bin2hex(random_bytes(16))], 'card_policy' => 'selected_years'];
+        $other = $job;
+        $other['headers']['Idempotency-Key'] = bin2hex(random_bytes(16));
+        $results = $this->parallel($user, [$job, $other]);
+        $statuses = array_column($results, 'status');
+        sort($statuses);
+        $this->assertSame([200, 412], $statuses);
+        $this->assertDatabaseCount('card_renewal_operations', 1);
+        $this->assertSame(1, DB::table('card_lifecycle_events')->where('operation', 'renewal')->count());
+        $this->assertSame(2, IdCard::find($card['id'])->revision);
     }
 }

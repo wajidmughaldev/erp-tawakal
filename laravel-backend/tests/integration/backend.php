@@ -106,20 +106,31 @@ try {
         $employee = Employee::whereKey($argv[2] ?? '')->where('full_name', 'like', $fixture['prefix'].'%')->firstOrFail();
         IdCard::create(['employee_id' => $employee->id, 'card_number' => 'HISTORICAL-'.$fixture['prefix'], 'qr_code_hash' => bin2hex(random_bytes(32)), 'issued_date' => now()->subYears(3), 'expiry_date' => now()->addYear(), 'status' => 'active']);
         echo "Owned historical non-credential fixture created.\n";
+    } elseif ($command === 'card-boundary') {
+        $fixture = json_decode(file_get_contents($path), true, 32, JSON_THROW_ON_ERROR);
+        $days = filter_var($argv[3] ?? null, FILTER_VALIDATE_INT);
+        if (! in_array($days, [-1, 0, 1, 15, 30, 31], true)) {
+            throw new RuntimeException('Invalid test boundary.');
+        }
+        $card = IdCard::whereKey($argv[2] ?? '')->whereHas('employee', fn ($employee) => $employee->where('full_name', 'like', $fixture['prefix'].'%'))->firstOrFail();
+        $card->expiry_date = CardValidity::today()->addDays($days);
+        $card->revision++;
+        $card->save();
+        echo "Owned test card boundary updated.\n";
     } elseif ($command === 'counts') {
         $counts = ['totalEmployees' => DB::table('employees')->whereNull('deleted_at')->count(), 'activeEmployees' => DB::table('employees')->whereNull('deleted_at')->where('status', 'active')->count(), 'pendingRequests' => DB::table('candidate_requests')->where('status', 'pending')->count(), 'approvedRequests' => DB::table('candidate_requests')->where('status', 'approved')->count(), 'rejectedRequests' => DB::table('candidate_requests')->where('status', 'rejected')->count(), 'cards' => DB::table('id_cards')->count(), 'renewals' => DB::table('card_lifecycle_events')->where('operation', 'renewal')->count()];
         $base = DB::table('id_cards as c')->join('employees as e', 'c.employee_id', '=', 'e.id')->whereNull('e.deleted_at')->whereNull('c.deleted_at')->whereNotNull('c.verification_token_digest');
         $today = CardValidity::today()->toDateString();
         $limit = CardValidity::today()->addDays(30)->toDateString();
-        foreach (['activeCards' => ['>', $limit], 'expiringCards' => ['between', [$today, $limit]], 'expiredCards' => ['<', $today]] as $name => [$operator,$value]) {
+        foreach (['activeCards' => ['>=', $today], 'expiringCards' => ['between', [$today, $limit]], 'expiredCards' => ['<', $today]] as $name => [$operator,$value]) {
             $query = (clone $base)->where('c.status', 'active')->where('e.status', 'active')->whereColumn('c.current_employee_id', 'e.id');
             $counts[$name] = $operator === 'between' ? $query->whereBetween('c.expiry_date', $value)->count() : $query->where('c.expiry_date', $operator, $value)->count();
-        }$counts['revokedCards'] = (clone $base)->where('c.status','revoked')->count();
-        echo json_encode($counts,JSON_THROW_ON_ERROR);
+        }$counts['revokedCards'] = (clone $base)->where('c.status', 'revoked')->count();
+        echo json_encode($counts, JSON_THROW_ON_ERROR);
     } else {
         throw new RuntimeException('Unknown integration fixture operation.');
     }
 } catch (Throwable $error) {
-    fwrite(STDERR,"Integration fixture operation failed. Review the isolated database setup and owned fixture state.\n");
+    fwrite(STDERR, "Integration fixture operation failed. Review the isolated database setup and owned fixture state.\n");
     exit(1);
 }

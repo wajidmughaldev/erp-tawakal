@@ -9,6 +9,6 @@ test('employee ETag stays with its fetch result and multipart edit sends If-Matc
 });
 test('renewal carries the explicit stable attempt key without creating a new key in the API client',async()=>{
  const original=globalThis.fetch;const key=crypto.randomUUID();let calls=0;
- globalThis.fetch=async(_url,init)=>{assert.equal(new Headers(init?.headers).get('Idempotency-Key'),key);calls++;return Response.json({data:{id:'42'}});};
- try{await cardsApi.renew('42','existing',key);await cardsApi.renew('42','existing',key);assert.equal(calls,2);}finally{globalThis.fetch=original;}
+ globalThis.fetch=async(_url,init)=>{assert.equal(new Headers(init?.headers).get('Idempotency-Key'),key);assert.equal(new Headers(init?.headers).get('If-Match'),'"card-42-v1"');calls++;return Response.json({data:{id:'42'}});};
+ try{await cardsApi.renew('42','existing',key,'"card-42-v1"');await cardsApi.renew('42','existing',key,'"card-42-v1"');assert.equal(calls,2);}finally{globalThis.fetch=original;}
 });

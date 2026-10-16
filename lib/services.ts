@@ -1,5 +1,5 @@
 import {request, queryString} from './api-client';
-import type {Employee, IDCard, EmployeeRequest, RegistrationInvite, InviteValidation, Manager, Notification, ListQuery, PageResult, Result, Dossier, EmploymentAction, PublicVerification, DashboardSummary, DocumentRecord, CardPolicy, RequestSummary} from './contracts';
+import type {Employee, IDCard, EmployeeRequest, RegistrationInvite, InviteValidation, Manager, Notification, ListQuery, PageResult, Result, Dossier, EmploymentAction, PublicVerification, DashboardSummary, DocumentRecord, CardPolicy, RequestSummary, RenewalPreview} from './contracts';
 const key = encodeURIComponent;
 const json = (body: unknown, method = 'POST') => ({method, body: JSON.stringify(body)});
 function resource<T>(path: string) {
@@ -38,9 +38,11 @@ export const invitesApi = {
 };
 export const cardsApi = {
   ...resource<IDCard>('/id-cards'),
+  get: async(id:string)=>{let etag:string|undefined;const result=await request<Result<IDCard>>('/id-cards/'+key(id),{onResponse:headers=>{etag=headers.get('ETag')??undefined;}});return {...result,etag};},
+  preview: async(id:string,option:'existing'|'new_physical')=>{let etag:string|undefined;const result=await request<Result<RenewalPreview>>(`/id-cards/${key(id)}/renewal-preview`+queryString({option}),{onResponse:headers=>{etag=headers.get('ETag')??undefined;}});return {...result,etag};},
   policy: () => request<Result<CardPolicy>>('/id-cards/policy'),
   issue: (employeeId: string, validityYears?: number) => request<Result<IDCard>>('/id-cards', json({employeeId, validityYears})),
-  renew: (id:string,option:'existing'|'new_physical',idempotencyKey:string) => request<Result<IDCard>>(`/id-cards/${key(id)}/renew`, {...json({option}),headers:{'Idempotency-Key':idempotencyKey}}),
+  renew: (id:string,option:'existing'|'new_physical',idempotencyKey:string,etag:string) => request<Result<IDCard>>(`/id-cards/${key(id)}/renew`, {...json({option}),headers:{'Idempotency-Key':idempotencyKey,'If-Match':etag}}),
   reissue: (id: string, reason: string, acknowledged: boolean) => request<Result<IDCard>>(`/id-cards/${key(id)}/reissue`, json({reason, acknowledged})),
   deactivate: (id: string, reason: string) => request<Result<IDCard>>(`/id-cards/${key(id)}/deactivate`, json({reason})),
   verify: (token: string) => request<PublicVerification>('/verify-card', {...json({token}), public: true}),

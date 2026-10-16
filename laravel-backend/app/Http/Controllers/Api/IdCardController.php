@@ -66,7 +66,14 @@ class IdCardController extends Controller
         $operation = validator(['idempotencyKey' => $request->header('Idempotency-Key')], ['idempotencyKey' => ['required', 'string', 'regex:/^[A-Za-z0-9-]{16,100}$/D']])->validate();
         $input = $request->validate(['option' => ['required', Rule::in(['existing', 'new_physical'])], 'validityYears' => ['sometimes', 'integer', Rule::in([1, 2])]]);
 
-        return $this->record($lifecycle->renew($idCard, $input['option'], isset($input['validityYears']) ? (int) $input['validityYears'] : null, $request->user(), $operation['idempotencyKey']));
+        return $this->record($lifecycle->renew($idCard, $input['option'], isset($input['validityYears']) ? (int) $input['validityYears'] : null, $request->user(), $operation['idempotencyKey'], $request->header('If-Match')));
+    }
+
+    public function renewalPreview(Request $request, IdCard $idCard, CardLifecycle $lifecycle)
+    {
+        $input = $request->validate(['option' => ['required', Rule::in(['existing', 'new_physical'])], 'validityYears' => ['sometimes', 'integer', Rule::in([1, 2])]]);
+
+        return response()->json(['data' => $lifecycle->preview($idCard, $input['option'], isset($input['validityYears']) ? (int) $input['validityYears'] : null)])->header('ETag', $idCard->etag())->header('Cache-Control', 'no-store');
     }
 
     public function reissue(Request $request, IdCard $idCard, CardLifecycle $lifecycle)
@@ -99,6 +106,6 @@ class IdCardController extends Controller
 
     private function record(IdCard $card, int $status = 200)
     {
-        return response()->json(['data' => (new IdCardResource($card))->resolve(request())], $status)->header('Cache-Control', 'no-store');
+        return response()->json(['data' => (new IdCardResource($card))->resolve(request())], $status)->header('ETag', $card->etag())->header('Cache-Control', 'no-store');
     }
 }
