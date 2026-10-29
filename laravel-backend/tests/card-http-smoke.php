@@ -21,7 +21,7 @@ if (! in_array(parse_url($url, PHP_URL_HOST), ['localhost', '127.0.0.1'], true))
 }
 
 $password = bin2hex(random_bytes(20));
-$user = User::create(['name' => 'Card HTTP Operator', 'email' => bin2hex(random_bytes(8)).'@example.test', 'password' => $password, 'role' => 'admin', 'is_active' => true]);
+$user = User::create(['name' => 'Card HTTP Operator', 'email' => bin2hex(random_bytes(8)).'@example.test', 'password' => $password, 'role' => 'superadmin', 'is_active' => true]);
 $admin = curl_init();
 $public = curl_init();
 foreach ([$admin, $public] as $handle) {
@@ -75,7 +75,7 @@ try {
     $expect($request($public, 'GET', '/api/v1/id-cards')[0], 401, 'Anonymous list denied');
     $expect($request($public, 'POST', '/api/v1/verify-card', ['token' => str_repeat('A', 43)], false, null, null)[0], 419, 'Missing public CSRF');
     $expect($request($admin, 'GET', '/sanctum/csrf-cookie')[0], 204, 'Admin CSRF bootstrap');
-    $expect($request($admin, 'POST', '/api/v1/auth/login', ['identifier' => $user->email, 'password' => $password, 'remember' => false])[0], 204, 'Admin login');
+    $expect($request($admin, 'POST', '/api/v1/auth/login', ['email' => $user->email, 'password' => $password, 'remember' => false])[0], 204, 'Admin login');
     $expect($request($public, 'GET', '/sanctum/csrf-cookie')[0], 204, 'Independent public CSRF bootstrap');
     $expect($request($public, 'POST', '/api/v1/verify-card', ['token' => str_repeat('A', 43)], false, null, true)[0], 419, 'Invalid public CSRF');
     $dossier = EmployeeDossier::make(['fullName' => 'Card HTTP Fixture '.bin2hex(random_bytes(6))]);

@@ -24,12 +24,12 @@ class EmployeeManagementTest extends TestCase
     {
         parent::setUp();
         Storage::fake('employee_private');
-        $this->actingAs(User::create(['name' => 'Test Operator', 'email' => 'employee-operator@example.test', 'password' => bin2hex(random_bytes(20)), 'role' => 'admin', 'is_active' => true]), 'web');
+        $this->actingAs(User::create(['name' => 'Test Operator', 'email' => 'employee-operator@example.test', 'password' => bin2hex(random_bytes(20)), 'role' => 'superadmin', 'is_active' => true]), 'web');
     }
 
     public static function roles(): array
     {
-        return [['admin'], ['co-admin'], ['manager']];
+        return [['superadmin'], ['manager']];
     }
 
     private function createEmployee(array $dossier = [], bool $photo = false)
@@ -80,7 +80,7 @@ class EmployeeManagementTest extends TestCase
         $row = DB::table('employees')->find($id);
         $this->assertNull($row->email);
         $this->assertNull($row->department);
-        foreach ([$dossier['cnic'], $dossier['residentialAddress'], $dossier['signature'], $dossier['mobileNumber']] as $secret) {
+        foreach ([$dossier['cnic'], $dossier['residentialAddress'], $dossier['mobileNumber']] as $secret) {
             $this->assertStringNotContainsString($secret, $row->dossier);
         }
         $this->assertStringNotContainsString($dossier['mobileNumber'], $row->phone);
@@ -101,6 +101,24 @@ class EmployeeManagementTest extends TestCase
     {
         $this->createEmployee(EmployeeDossier::make(['cnic' => '123', 'dateOfBirth' => '2026-02-30', 'joiningDate' => 'not-a-date', 'declarationAccepted' => false]))->assertUnprocessable()->assertJsonValidationErrors(['dossier.cnic', 'dossier.dateOfBirth', 'dossier.joiningDate', 'dossier.declarationAccepted']);
         $this->createEmployee(EmployeeDossier::make(['cnic' => '4210112345671']))->assertUnprocessable()->assertJsonValidationErrors('dossier.cnic');
+    }
+
+    public function test_only_superadmin_can_delete_employees(): void
+    {
+        $id = $this->createEmployee()->assertCreated()->json('data.id');
+        Auth::forgetGuards();
+        $this->actingAs(User::create(['name' => 'Branch Manager', 'email' => 'manager-delete@example.test', 'password' => bin2hex(random_bytes(20)), 'role' => 'manager', 'is_active' => true]), 'web');
+        $this->deleteJson('/api/v1/employees/'.$id)->assertForbidden();
+        $this->assertNotSoftDeleted('employees', ['id' => $id]);
+    }
+
+    public function test_list_filters_support_no_card_and_reject_removed_inactive_status(): void
+    {
+        $id = $this->createEmployee()->assertCreated()->json('data.id');
+        $this->getJson('/api/v1/employees?cardStatus=none')->assertOk()->assertJsonPath('meta.total', 1)->assertJsonPath('data.0.id', (string) $id);
+        $this->getJson('/api/v1/employees?cardStatus=active_only')->assertOk()->assertJsonPath('meta.total', 0);
+        $this->getJson('/api/v1/employees?status=inactive')->assertUnprocessable();
+        $this->getJson('/api/v1/employees?status=transferred')->assertOk()->assertJsonPath('meta.total', 0);
     }
 
     public function test_duplicate_cnic_is_rejected_even_after_soft_delete(): void
@@ -155,7 +173,7 @@ class EmployeeManagementTest extends TestCase
         Storage::disk('employee_private')->put($path, 'existing document');
         $document = $employee->documents()->create(['name' => 'Existing.pdf', 'type' => 'cnic', 'path' => $path]);
         $dossier = $employee->dossier;
-        $dossier['signature'] = 'Updated Signature';
+        $dossier['designation'] = 'Updated Designation';
         Request::enableHttpMethodParameterOverride();
         $updated = $this->withHeader('If-Match', $created->headers->get('ETag'))->post('/api/v1/employees/'.$id, ['_method' => 'PATCH', 'dossier' => json_encode($dossier), 'photo' => UploadedFile::fake()->createWithContent('replacement.png', EmployeeDossier::png())], ['Accept' => 'application/json'])->assertOk();
         $this->assertNotSame($oldPath, $employee->fresh()->photo_path);

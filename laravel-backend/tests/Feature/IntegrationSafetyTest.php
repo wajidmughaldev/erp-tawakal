@@ -22,7 +22,7 @@ class IntegrationSafetyTest extends TestCase
     {
         parent::setUp();
         config(['cards.validity_policy' => 'selected_years']);
-        $this->operator = User::create(['name' => 'Integration Operator', 'email' => 'integration-operator@example.test', 'password' => bin2hex(random_bytes(20)), 'role' => 'admin', 'is_active' => true]);
+        $this->operator = User::create(['name' => 'Integration Operator', 'email' => 'integration-operator@example.test', 'password' => bin2hex(random_bytes(20)), 'role' => 'superadmin', 'is_active' => true]);
         $this->actingAs($this->operator, 'web');
     }
 
@@ -47,7 +47,7 @@ class IntegrationSafetyTest extends TestCase
         }
         $summary = $this->getJson('/api/v1/dashboard/summary')->json('data');
         foreach ($summary as $field => $value) {
-            if ($field === 'expiring') {
+            if (in_array($field, ['expiring', 'expired'], true) && is_array($value)) {
                 $this->assertSame([], $value);
             } else {
                 $this->assertSame(0, $value);
@@ -123,7 +123,7 @@ class IntegrationSafetyTest extends TestCase
         $this->postJson('/api/v1/id-cards/'.$card['id'].'/deactivate', ['reason' => 'Test revocation'])->assertOk();
         $inactive = $this->employee('Filtered Inactive');
         $this->card($inactive);
-        $inactive->status = 'inactive';
+        $inactive->status = 'resigned';
         $inactive->save();
         $deleted = $this->employee('Filtered Deleted');
         $this->card($deleted);
@@ -137,7 +137,8 @@ class IntegrationSafetyTest extends TestCase
         $this->getJson('/api/v1/employees?cardStatus=active&expiry=expiring')->assertJsonPath('meta.total', 2);
         $this->getJson('/api/v1/employees?expiry=expiring')->assertJsonPath('meta.total', 2);
         $summary = $this->getJson('/api/v1/dashboard/summary')->assertOk()->assertJsonPath('data.totalEmployees', 7)->assertJsonPath('data.activeEmployees', 6)->assertJsonPath('data.activeCards', 3)->assertJsonPath('data.expiringCards', 2)->assertJsonPath('data.expiredCards', 1)->assertJsonPath('data.revokedCards', 1)->json('data');
-        foreach ($summary['expiring'] as $item) {
+        $this->assertCount(1, $summary['expired']);
+        foreach (array_merge($summary['expiring'], $summary['expired']) as $item) {
             $this->assertArrayNotHasKey('verificationToken', $item);
             $this->assertArrayNotHasKey('dossier', $item);
             $this->assertSame('current', $item['credentialState']);

@@ -18,7 +18,7 @@ if (! in_array(parse_url($url, PHP_URL_HOST), ['localhost', '127.0.0.1'], true))
     throw new RuntimeException('Smoke server must be local.');
 }
 $password = bin2hex(random_bytes(20));
-$user = User::create(['name' => 'HTTP Test Operator', 'email' => bin2hex(random_bytes(8)).'@example.test', 'password' => $password, 'role' => 'admin']);
+$user = User::create(['name' => 'HTTP Test Operator', 'email' => bin2hex(random_bytes(8)).'@example.test', 'password' => $password, 'role' => 'superadmin']);
 $curl = curl_init();
 curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEFILE => '', CURLOPT_TIMEOUT => 20]);
 $request = function (string $method, string $path, ?array $body = null, bool $multipart = false, ?string $etag = null) use ($curl, $url): array {
@@ -63,7 +63,7 @@ $document = null;
 try {
     $expect($request('GET', '/api/v1/employees')[0], 401, 'Guest employee protection');
     $expect($request('GET', '/sanctum/csrf-cookie')[0], 204, 'Sanctum CSRF');
-    $expect($request('POST', '/api/v1/auth/login', ['identifier' => $user->email, 'password' => $password, 'remember' => false])[0], 204, 'Session login');
+    $expect($request('POST', '/api/v1/auth/login', ['email' => $user->email, 'password' => $password, 'remember' => false])[0], 204, 'Session login');
     $dossier = EmployeeDossier::make(['fullName' => 'HTTP Persistence '.bin2hex(random_bytes(6))]);
     $created = $request('POST', '/api/v1/employees', ['dossier' => json_encode($dossier), 'photo' => new CURLFile($photoFile, 'image/png', 'client-photo.png')], true);
     $expect($created[0], 201, 'Multipart employee creation');

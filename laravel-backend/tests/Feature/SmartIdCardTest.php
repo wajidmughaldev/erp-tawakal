@@ -31,7 +31,7 @@ class SmartIdCardTest extends TestCase
         parent::setUp();
         Storage::fake('employee_private');
         config(['cards.validity_policy' => 'selected_years']);
-        $this->operator = User::create(['name' => 'Card Test Operator', 'email' => 'card-operator@example.test', 'password' => bin2hex(random_bytes(20)), 'role' => 'admin', 'is_active' => true]);
+        $this->operator = User::create(['name' => 'Card Test Operator', 'email' => 'card-operator@example.test', 'password' => bin2hex(random_bytes(20)), 'role' => 'superadmin', 'is_active' => true]);
         $this->actingAs($this->operator, 'web');
     }
 
@@ -54,7 +54,7 @@ class SmartIdCardTest extends TestCase
 
     public static function roles(): array
     {
-        return [['admin'], ['co-admin'], ['manager']];
+        return [['superadmin'], ['manager']];
     }
 
     #[DataProvider('roles')]
@@ -119,7 +119,7 @@ class SmartIdCardTest extends TestCase
     {
         $this->postJson('/api/v1/id-cards', ['employeeId' => '9999999', 'validityYears' => 1])->assertUnprocessable()->assertJsonValidationErrors('employeeId');
         $employee = $this->employee();
-        $employee->status = 'inactive';
+        $employee->status = 'resigned';
         $employee->save();
         $this->postJson('/api/v1/id-cards', ['employeeId' => $employee->id, 'validityYears' => 1])->assertConflict();
         $employee->status = 'active';
@@ -221,7 +221,7 @@ class SmartIdCardTest extends TestCase
             $model->save();
             $response = $this->verify($card['verificationToken'])->assertOk()->assertHeader('Cache-Control', 'no-store, private')->assertJsonPath('status', $status);
             $this->assertSame(['status', 'message', 'card'], array_keys($response->json()));
-            $this->assertSame(['number', 'employeeName', 'employeeDisplayId', 'designation', 'issueDate', 'expiryDate'], array_keys($response->json('card')));
+            $this->assertSame(['number', 'employeeName', 'employeeDisplayId', 'designation', 'bloodGroup', 'issueDate', 'expiryDate', 'photo'], array_keys($response->json('card')));
             foreach ([$card['verificationToken'], $model->verification_token_digest, $model->employee->dossier['cnic'], $model->employee->dossier['residentialAddress']] as $secret) {
                 $this->assertStringNotContainsString($secret, $response->getContent());
             }
@@ -237,11 +237,12 @@ class SmartIdCardTest extends TestCase
     {
         $card = $this->issue();
         $employee = Employee::find($card['employeeId']);
-        foreach (['inactive', 'transferred', 'resigned'] as $state) {
-            $employee->status = $state;
-            $employee->save();
-            $this->verify($card['verificationToken'])->assertJsonPath('status', 'invalid')->assertJsonMissingPath('card');
-        }
+        $employee->status = 'transferred';
+        $employee->save();
+        $this->verify($card['verificationToken'])->assertJsonPath('status', 'valid');
+        $employee->status = 'resigned';
+        $employee->save();
+        $this->verify($card['verificationToken'])->assertJsonPath('status', 'invalid')->assertJsonMissingPath('card');
         $this->withHeader('If-Match', IdCard::find($card['id'])->etag())->withHeader('Idempotency-Key', bin2hex(random_bytes(16)))->postJson('/api/v1/id-cards/'.$card['id'].'/renew', ['option' => 'existing'])->assertConflict();
         $this->postJson('/api/v1/id-cards/'.$card['id'].'/reissue', ['reason' => 'Damaged Card', 'acknowledged' => true])->assertConflict();
         $employee->status = 'active';

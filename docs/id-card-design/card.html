@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tawakal Enterprises - Employee ID Card design</title>
+<style>
+  @font-face { font-family:'Inter'; font-weight:100 900; src:url('../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2'); }
+  :root { --indigo:#092a4a; --indigo-dark:#071f38; --gold:#c9a227; --ink:#161231; --muted:#6b6784; --line:#e3e1ee; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:#e9e8f1; font-family:'Inter','Segoe UI',Arial,sans-serif; color:var(--ink); padding:48px; display:flex; gap:56px; justify-content:center; align-items:flex-start; }
+  .label { text-align:center; margin-bottom:14px; font-size:14px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  /* CR80 card, portrait: 54 x 85.6 mm */
+  .card { width:540px; height:856px; border-radius:34px; background:#fff; position:relative; overflow:hidden; box-shadow:0 18px 50px rgba(9,42,74,.28); }
+  .hole { position:absolute; top:22px; left:50%; width:96px; height:16px; margin-left:-48px; border-radius:10px; background:#e9e8f1; box-shadow:inset 0 2px 4px rgba(0,0,0,.25); z-index:5; }
+
+  /* ---------- FRONT ---------- */
+  .front .band { position:absolute; inset:0 0 auto 0; height:330px; background:linear-gradient(160deg,var(--indigo) 0%,var(--indigo-dark) 100%); }
+  .front .band::after { content:''; position:absolute; left:-10%; right:-10%; bottom:-90px; height:170px; background:#fff; border-radius:50% 50% 0 0 / 100% 100% 0 0; }
+  .front .band::before { content:''; position:absolute; right:-70px; top:-70px; width:240px; height:240px; border-radius:50%; border:30px solid rgba(255,255,255,.06); }
+  .front .brand { position:absolute; top:62px; left:0; right:0; text-align:center; z-index:2; }
+  .front .brand img { width:112px; height:112px; display:block; margin:0 auto; }
+  .front .kind { margin-top:6px; color:#fff; font-size:15px; letter-spacing:.34em; font-weight:600; text-indent:.34em; }
+  .front .kind::after { content:''; display:block; width:54px; height:3px; background:var(--gold); margin:10px auto 0; border-radius:2px; }
+  .photo { position:absolute; top:236px; left:50%; width:210px; height:250px; margin-left:-105px; border-radius:22px; border:8px solid #fff; background:#d9d6ea; box-shadow:0 8px 22px rgba(9,42,74,.28); overflow:hidden; z-index:3; }
+  .photo svg { width:100%; height:100%; display:block; }
+  .person { position:absolute; top:500px; left:30px; right:30px; text-align:center; }
+  .person .name { font-size:36px; font-weight:800; color:var(--indigo); line-height:1.1; }
+  .person .role { margin-top:8px; font-size:20px; color:var(--muted); font-weight:500; }
+  .person .rule { width:72px; height:3px; background:var(--gold); margin:18px auto 0; border-radius:2px; }
+  .facts { position:absolute; top:640px; left:40px; right:40px; display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:6px; text-align:center; }
+  .facts .k { font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .facts .v { margin-top:7px; font-size:21px; font-weight:700; }
+  .facts .id { font-family:Consolas,'Courier New',monospace; color:var(--indigo); font-size:21px; }
+  .facts .blood { display:inline-block; min-width:56px; padding:3px 12px; border-radius:20px; background:#c62839; color:#fff; font-size:20px; }
+  .facts > div + div { border-left:1px solid var(--line); }
+  .front .foot { position:absolute; left:0; right:0; bottom:0; height:84px; background:var(--indigo); color:#fff; text-align:center; padding-top:22px; }
+  .front .foot::before { content:''; position:absolute; left:0; right:0; top:0; height:5px; background:var(--gold); }
+  .front .foot b { display:block; font-size:16px; letter-spacing:.18em; }
+  .front .foot span { display:block; margin-top:6px; font-size:12.5px; opacity:.8; letter-spacing:.06em; }
+
+  /* ---------- BACK ---------- */
+  .back .top { position:absolute; left:0; right:0; top:0; height:150px; background:linear-gradient(160deg,var(--indigo) 0%,var(--indigo-dark) 100%); text-align:center; padding-top:58px; color:#fff; }
+  .back .top b { font-size:20px; letter-spacing:.3em; text-indent:.3em; display:block; }
+  .back .top span { display:block; margin-top:8px; font-size:12.5px; letter-spacing:.2em; opacity:.8; }
+  .back .top::after { content:''; position:absolute; left:0; right:0; bottom:0; height:5px; background:var(--gold); }
+  .qrbox { position:absolute; top:178px; left:50%; width:256px; margin-left:-128px; text-align:center; }
+  .qrbox .frame { padding:14px; border:2px solid var(--line); border-radius:20px; background:#fff; }
+  .qrbox img { width:100%; display:block; }
+  .qrbox p { margin-top:12px; font-size:15px; font-weight:600; color:var(--indigo); }
+  .qrbox small { display:block; margin-top:3px; font-size:12px; color:var(--muted); }
+  .grid3 { position:absolute; top:524px; left:36px; right:36px; display:grid; grid-template-columns:1.35fr 1fr 1fr; text-align:center; padding:14px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+  .grid3 .k, .rows .k { font-size:11.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .grid3 .v { margin-top:6px; font-size:17px; font-weight:700; }
+  .grid3 .no { font-family:Consolas,'Courier New',monospace; font-size:15px; color:var(--indigo); }
+  .grid3 > div + div { border-left:1px solid var(--line); }
+  .rows { position:absolute; top:604px; left:40px; right:40px; }
+  .rows .row { display:flex; justify-content:space-between; align-items:baseline; padding:9px 0; border-bottom:1px dashed var(--line); }
+  .rows .v { font-size:16.5px; font-weight:600; }
+  .terms { position:absolute; left:40px; right:40px; bottom:96px; font-size:11.5px; line-height:1.55; color:var(--muted); text-align:center; }
+  .back .foot { position:absolute; left:0; right:0; bottom:0; height:82px; background:var(--indigo); color:#fff; text-align:center; padding-top:16px; }
+  .back .foot::before { content:''; position:absolute; left:0; right:0; top:0; height:5px; background:var(--gold); }
+  .back .foot img { height:34px; display:block; margin:0 auto; }
+  .back .foot span { display:block; margin-top:7px; font-size:12px; opacity:.85; letter-spacing:.05em; }
+</style>
+</head>
+<body>
+
+<section>
+  <div class="label">Front</div>
+  <div class="card front">
+    <div class="hole"></div>
+    <div class="band"></div>
+    <div class="brand">
+      <img src="../../public/brand/logo-white.svg" alt="Tawakal Enterprises">
+      <div class="kind">EMPLOYEE ID</div>
+    </div>
+    <div class="photo">
+      <!-- Employee photograph goes here (object-fit: cover). Placeholder silhouette shown. -->
+      <svg viewBox="0 0 100 120" preserveAspectRatio="xMidYMid slice"><rect width="100" height="120" fill="#d9d6ea"/><circle cx="50" cy="46" r="20" fill="#9a95bd"/><path d="M12 120c0-26 17-42 38-42s38 16 38 42z" fill="#9a95bd"/></svg>
+    </div>
+    <div class="person">
+      <div class="name">Kamran Shahzad</div>
+      <div class="role">Medical Sales Representative</div>
+      <div class="rule"></div>
+    </div>
+    <div class="facts">
+      <div><div class="k">Employee ID</div><div class="v id">EMP-2026-0003</div></div>
+      <div><div class="k">Blood Group</div><div class="v"><span class="blood">B+</span></div></div>
+      <div><div class="k">Valid Until</div><div class="v">09 Jan 2027</div></div>
+    </div>
+    <div class="foot"><b>TAWAKAL ENTERPRISES</b><span>Property of the company &middot; Scan the QR on the back to verify</span></div>
+  </div>
+</section>
+
+<section>
+  <div class="label">Back</div>
+  <div class="card back">
+    <div class="hole"></div>
+    <div class="top"><b>VERIFY THIS CARD</b><span>SMART ID CREDENTIAL</span></div>
+    <div class="qrbox">
+      <div class="frame"><img src="data:image/png;base64,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" alt="Verification QR"></div>
+      <p>Scan to check this card is genuine</p>
+      <small>Shows whether the card is valid, expired or revoked</small>
+    </div>
+    <div class="grid3">
+      <div><div class="k">Card No.</div><div class="v no">CARD-2026-000007</div></div>
+      <div><div class="k">Issued</div><div class="v">09 Feb 2026</div></div>
+      <div><div class="k">Expires</div><div class="v">09 Jan 2027</div></div>
+    </div>
+    <div class="rows">
+      <div class="row"><span class="k">CNIC</span><span class="v">42101-1234567-1</span></div>
+      <div class="row"><span class="k">Emergency Contact</span><span class="v">0321 0000000</span></div>
+    </div>
+    <div class="terms">This card is the property of Tawakal Enterprises and must be carried on duty. It is not transferable. If found, please return it to the company or call the office.</div>
+    <div class="foot"><img src="../../public/brand/logo-white.svg" alt=""><span>Tawakal Enterprises</span></div>
+  </div>
+</section>
+
+</body>
+</html>

@@ -9,7 +9,10 @@ class Employee extends Model
 {
     use SoftDeletes;
 
-    public const STATUSES = ['active', 'inactive', 'transferred', 'resigned'];
+    public const STATUSES = ['active', 'transferred', 'resigned'];
+
+    // Transferred employees keep working, so their ID cards stay valid, verifiable and renewable.
+    public const WORKING_STATUSES = ['active', 'transferred'];
 
     protected $fillable = ['employee_id', 'full_name', 'designation', 'joining_date', 'phone', 'dossier', 'cnic_lookup', 'photo_path', 'status'];
 

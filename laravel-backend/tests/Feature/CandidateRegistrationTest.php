@@ -28,7 +28,7 @@ class CandidateRegistrationTest extends TestCase
     {
         parent::setUp();
         Storage::fake('employee_private');
-        $this->operator = User::create(['name' => 'Candidate Test Operator', 'email' => 'candidate-operator@example.test', 'password' => bin2hex(random_bytes(20)), 'role' => 'admin', 'is_active' => true]);
+        $this->operator = User::create(['name' => 'Candidate Test Operator', 'email' => 'candidate-operator@example.test', 'password' => bin2hex(random_bytes(20)), 'role' => 'superadmin', 'is_active' => true]);
         $this->actingAs($this->operator, 'web');
     }
 
@@ -49,7 +49,7 @@ class CandidateRegistrationTest extends TestCase
 
     public static function roles(): array
     {
-        return [['admin'], ['co-admin'], ['manager']];
+        return [['superadmin'], ['manager']];
     }
 
     #[DataProvider('roles')]
@@ -126,10 +126,63 @@ class CandidateRegistrationTest extends TestCase
         $this->postJson('/api/v1/registration-invites/validate', ['token' => str_repeat('x', 512)])->assertUnprocessable();
     }
 
-    public function test_invite_fields_and_future_expiration_are_required(): void
+    public function test_invite_needs_no_details_and_always_lasts_one_day(): void
     {
-        $this->postJson('/api/v1/registration-invites', [])->assertUnprocessable()->assertJsonValidationErrors(['candidateName', 'designation', 'department', 'expiresAt']);
-        $this->postJson('/api/v1/registration-invites', ['candidateName' => 'Candidate', 'designation' => 'Role', 'department' => 'Department', 'expiresAt' => now()->subSecond()->toIso8601String()])->assertUnprocessable()->assertJsonValidationErrors('expiresAt');
+        $this->travelTo(now()->startOfSecond());
+        $invite = $this->postJson('/api/v1/registration-invites', [])->assertCreated()->assertJsonPath('data.status', 'valid')->assertJsonPath('data.candidateName', '')->json('data');
+        $this->assertSame(now()->addDay()->toIso8601String(), \Carbon\CarbonImmutable::parse($invite['expiresAt'])->toIso8601String());
+        // A client-supplied expiry is ignored.
+        $other = $this->postJson('/api/v1/registration-invites', ['expiresAt' => now()->addYear()->toIso8601String()])->assertCreated()->json('data');
+        $this->assertSame($invite['expiresAt'], $other['expiresAt']);
+        // An open invitation lets the candidate choose any designation.
+        $this->submit($invite, EmployeeDossier::make(['designation' => 'Any Role']))->assertCreated();
+        $this->travelBack();
+    }
+
+    public function test_candidate_documents_are_validated_stored_and_copied_to_the_employee_on_approval(): void
+    {
+        $invite = $this->invite();
+        $pdf = fn (string $name) => UploadedFile::fake()->createWithContent($name, "%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF");
+        $this->post('/api/v1/employee-requests', ['token' => $invite['token'], 'dossier' => json_encode(EmployeeDossier::make()), 'documents' => [['type' => 'cnic', 'file' => UploadedFile::fake()->createWithContent('run.exe', 'MZ')]]], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('documents.0.file');
+        $this->post('/api/v1/employee-requests', ['token' => $invite['token'], 'dossier' => json_encode(EmployeeDossier::make()), 'documents' => [['type' => 'passport', 'file' => $pdf('x.pdf')]]], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors('documents.0.type');
+        $this->assertSame(0, \App\Models\CandidateRequest::count());
+
+        $response = $this->post('/api/v1/employee-requests', ['token' => $invite['token'], 'dossier' => json_encode(EmployeeDossier::make()), 'documents' => [['type' => 'cnic', 'file' => $pdf('cnic.pdf')], ['type' => 'utility_bill', 'file' => $pdf('bill.pdf')]]], ['Accept' => 'application/json'])->assertCreated();
+        $id = $response->json('data.id');
+        $show = $this->getJson('/api/v1/employee-requests/'.$id)->assertOk()->assertJsonCount(2, 'data.documents');
+        $this->get('/api/v1/candidate-documents/'.$show->json('data.documents.0.id').'/download')->assertOk();
+
+        $approved = $this->postJson('/api/v1/employee-requests/'.$id.'/approve')->assertOk();
+        $employeeId = $approved->json('data.employeeId');
+        $this->getJson('/api/v1/employees/'.$employeeId.'/documents')->assertOk()->assertJsonCount(2, 'data');
+        $this->assertCount(2, Storage::disk('employee_private')->allFiles('employees/'.$employeeId.'/documents'));
+        // Approving never issues an ID card automatically.
+        $this->assertSame(0, \App\Models\IdCard::count());
+    }
+
+    public function test_cnic_duplicates_are_reported_before_the_end_of_the_form(): void
+    {
+        $dossier = EmployeeDossier::make();
+        $invite = $this->invite();
+        $this->postJson('/api/v1/registration-invites/check-cnic', ['token' => $invite['token'], 'cnic' => $dossier['cnic']])->assertOk()->assertExactJson(['registered' => false]);
+        $this->postJson('/api/v1/employees', ['dossier' => json_encode($dossier)])->assertCreated();
+        $this->postJson('/api/v1/registration-invites/check-cnic', ['token' => $invite['token'], 'cnic' => $dossier['cnic']])->assertOk()->assertExactJson(['registered' => true]);
+        $this->postJson('/api/v1/employees/check-cnic', ['cnic' => $dossier['cnic']])->assertOk()->assertExactJson(['registered' => true]);
+        $employeeId = \App\Models\Employee::firstOrFail()->id;
+        $this->postJson('/api/v1/employees/check-cnic', ['cnic' => $dossier['cnic'], 'exceptEmployeeId' => $employeeId])->assertOk()->assertExactJson(['registered' => false]);
+        $this->submit($invite, $dossier)->assertUnprocessable()->assertJsonValidationErrors('dossier.cnic');
+        // The public check needs a usable invitation and a well-formed CNIC.
+        $this->postJson('/api/v1/registration-invites/check-cnic', ['token' => str_repeat('a', 43), 'cnic' => $dossier['cnic']])->assertStatus(409);
+        $this->postJson('/api/v1/registration-invites/check-cnic', ['token' => $invite['token'], 'cnic' => '123'])->assertUnprocessable();
+    }
+
+    public function test_second_pending_application_with_the_same_cnic_is_rejected(): void
+    {
+        $dossier = EmployeeDossier::make();
+        $this->submit($this->invite(), $dossier)->assertCreated();
+        $second = $this->invite();
+        $this->postJson('/api/v1/registration-invites/check-cnic', ['token' => $second['token'], 'cnic' => $dossier['cnic']])->assertExactJson(['registered' => true]);
+        $this->submit($second, $dossier)->assertUnprocessable()->assertJsonValidationErrors('dossier.cnic');
     }
 
     public function test_public_rate_limits(): void

@@ -8,6 +8,7 @@ use App\Http\Resources\EmployeeResource;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Services\EmployeeEnrollment;
+use App\Services\Notifier;
 use App\Support\EmployeeFiles;
 use App\Support\EmployeeIdentity;
 use Illuminate\Database\QueryException;
@@ -25,14 +26,16 @@ class EmployeeController extends Controller
     public function index(Request $request): JsonResponse
     {
         $sorts = ['newest' => ['id', 'desc'], 'oldest' => ['id', 'asc'], 'name_asc' => ['full_name', 'asc'], 'name_desc' => ['full_name', 'desc'], 'name' => ['full_name', 'asc'], '-name' => ['full_name', 'desc'], 'displayId' => ['id', 'asc'], '-displayId' => ['id', 'desc']];
-        $input = $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'search' => ['sometimes', 'nullable', 'string', 'max:254'], 'status' => ['sometimes', 'nullable', Rule::in(Employee::STATUSES)], 'cardStatus' => ['sometimes', 'nullable', Rule::in(['active', 'expiring_soon', 'expired', 'revoked', 'replaced'])], 'expiry' => ['sometimes', 'nullable', Rule::in(['expiring', 'expired'])], 'sort' => ['sometimes', 'nullable', Rule::in(array_keys($sorts))]]);
+        $input = $request->validate(['page' => ['sometimes', 'integer', 'min:1'], 'search' => ['sometimes', 'nullable', 'string', 'max:254'], 'status' => ['sometimes', 'nullable', Rule::in(Employee::STATUSES)], 'cardStatus' => ['sometimes', 'nullable', Rule::in(['active', 'active_only', 'expiring_soon', 'expired', 'revoked', 'replaced', 'none'])], 'expiry' => ['sometimes', 'nullable', Rule::in(['expiring', 'expired'])], 'sort' => ['sometimes', 'nullable', Rule::in(array_keys($sorts))]]);
         $query = Employee::with(['documents', 'cards']);
         if (! empty($input['status'])) {
             $query->where('status', $input['status']);
         }
         if (! empty($input['cardStatus'])) {
             $status = $input['cardStatus'];
-            if (in_array($status, ['revoked', 'replaced'], true)) {
+            if ($status === 'none') {
+                $query->whereDoesntHave('cards');
+            } elseif (in_array($status, ['revoked', 'replaced'], true)) {
                 $query->whereDoesntHave('cards', fn ($card) => $card->eligibleCurrent())->whereHas('latestCard', fn ($card) => $card->displayStatus($status));
             } else {
                 $query->whereHas('cards', fn ($card) => $card->displayStatus($status));
@@ -69,7 +72,16 @@ class EmployeeController extends Controller
             $this->failedWrite($newPath, $error);
         }
 
+        Notifier::send('employees', 'success', 'New employee added', "{$employee->full_name} ({$employee->employee_id}) was added by {$request->user()->name}.", ['employee', $employee->id], $request->user());
+
         return $this->record($employee, 201);
+    }
+
+    public function checkCnic(Request $request): JsonResponse
+    {
+        $input = $request->validate(['cnic' => ['required', 'string', 'regex:/^[0-9]{5}-[0-9]{7}-[0-9]$/'], 'exceptEmployeeId' => ['sometimes', 'nullable', 'integer', 'min:1']]);
+
+        return response()->json(['registered' => EmployeeIdentity::registered($input['cnic'], $input['exceptEmployeeId'] ?? null)])->header('Cache-Control', 'no-store');
     }
 
     public function show(Employee $employee): JsonResponse
@@ -121,8 +133,9 @@ class EmployeeController extends Controller
         return $this->record($employee);
     }
 
-    public function destroy(Employee $employee)
+    public function destroy(Request $request, Employee $employee)
     {
+        abort_unless($request->user()->role === 'superadmin', 403, 'Only a superadmin can delete employees.');
         Gate::authorize('view', $employee);
         DB::transaction(function () use ($employee) {
             $current = Employee::whereKey($employee->id)->lockForUpdate()->firstOrFail();
@@ -130,6 +143,8 @@ class EmployeeController extends Controller
             $current->save();
             $current->delete();
         });
+
+        Notifier::send('employees', 'warning', 'Employee deleted', "{$employee->full_name} ({$employee->employee_id}) was deleted by {$request->user()->name}.", null, $request->user());
 
         return response()->noContent()->header('Cache-Control', 'no-store');
     }

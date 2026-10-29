@@ -68,7 +68,7 @@ try {
         $prefix = 'QA'.bin2hex(random_bytes(8));
         $password = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
         $email = strtolower($prefix).'@example.test';
-        $admin = User::create(['name' => 'Integration Test Administrator', 'email' => $email, 'username' => strtolower($prefix), 'password' => $password, 'role' => 'admin', 'is_active' => true]);
+        $admin = User::create(['name' => 'Integration Test Administrator', 'email' => $email, 'username' => strtolower($prefix), 'password' => $password, 'role' => 'superadmin', 'is_active' => true]);
         if (! is_dir(dirname($path))) {
             mkdir(dirname($path), 0700, true);
         }file_put_contents($path, json_encode(['prefix' => $prefix, 'email' => $email, 'password' => $password, 'adminId' => $admin->id], JSON_THROW_ON_ERROR));

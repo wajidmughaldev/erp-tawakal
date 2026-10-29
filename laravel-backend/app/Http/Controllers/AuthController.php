@@ -6,24 +6,28 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
+    private function passwordRules(): array
+    {
+        return ['required', 'string', 'max:72', PasswordRule::min(8)->letters()->mixedCase()->numbers()];
+    }
+
     public function login(Request $request): Response
     {
         $validated = $request->validate([
-            'identifier' => ['required', 'string', 'max:254'],
-            'password' => ['required', 'string', 'max:72', function ($attribute, $value, $fail) {
-                if (is_string($value) && strlen($value) > 72) {
-                    $fail('Password must not exceed 72 bytes.');
-                }
-            }],
+            'email' => ['required', 'string', 'email', 'max:254'],
+            'password' => ['required', 'string', 'max:72'],
             'remember' => ['sometimes', 'boolean'],
         ]);
-        $identifier = strtolower(trim($validated['identifier']));
         $credentials = [
-            str_contains($identifier, '@') ? 'email' : 'username' => $identifier,
+            'email' => strtolower(trim($validated['email'])),
             'password' => $validated['password'],
             'is_active' => true,
             'role' => User::ROLES,
@@ -53,6 +57,54 @@ class AuthController extends Controller
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        return response()->noContent()->header('Cache-Control', 'no-store');
+    }
+
+    public function changePassword(Request $request): Response
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'string', 'max:72'],
+            'password' => [...$this->passwordRules(), 'confirmed', 'different:current_password'],
+        ]);
+        $user = $request->user();
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            return response()->json(['message' => 'The current password is incorrect.', 'errors' => ['current_password' => ['The current password is incorrect.']]], 422);
+        }
+        $user->forceFill(['password' => $validated['password'], 'remember_token' => Str::random(60)])->save();
+
+        return response()->noContent()->header('Cache-Control', 'no-store');
+    }
+
+    public function forgotPassword(Request $request): Response
+    {
+        $validated = $request->validate(['email' => ['required', 'string', 'email', 'max:254']]);
+        $email = strtolower(trim($validated['email']));
+        // Same response whether or not the account exists, to avoid account enumeration.
+        if (User::where('email', $email)->where('is_active', true)->whereIn('role', User::ROLES)->exists()) {
+            Password::sendResetLink(['email' => $email]);
+        }
+
+        return response()->noContent()->header('Cache-Control', 'no-store');
+    }
+
+    public function resetPassword(Request $request): Response
+    {
+        $validated = $request->validate([
+            'token' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:254'],
+            'password' => [...$this->passwordRules(), 'confirmed'],
+        ]);
+        $status = Password::reset(
+            ['email' => strtolower(trim($validated['email'])), 'password' => $validated['password'], 'token' => $validated['token']],
+            function (User $user, string $password) {
+                abort_unless($user->is_active, 403, 'Access denied.');
+                $user->forceFill(['password' => $password, 'remember_token' => Str::random(60)])->save();
+            }
+        );
+        if ($status !== Password::PASSWORD_RESET) {
+            return response()->json(['message' => 'This reset link is invalid or has expired.', 'errors' => ['email' => ['This reset link is invalid or has expired.']]], 422);
+        }
 
         return response()->noContent()->header('Cache-Control', 'no-store');
     }

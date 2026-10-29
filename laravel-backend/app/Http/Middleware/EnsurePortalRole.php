@@ -9,9 +9,11 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsurePortalRole
 {
-    public function handle(Request $request, Closure $next): Response
+    /** Usage: portal.role (any portal role) or portal.role:superadmin (restricted to the listed roles). */
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        abort_unless($request->user()?->is_active && in_array($request->user()->role, User::ROLES, true), 403, 'Access denied.');
+        $allowed = $roles ?: User::ROLES;
+        abort_unless($request->user()?->is_active && in_array($request->user()->role, $allowed, true), 403, 'Access denied.');
 
         return $next($request);
     }

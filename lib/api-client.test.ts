@@ -13,7 +13,7 @@ test('session login requires CSRF, login and confirmed user', async () => {
   const original = globalThis.fetch; const calls: string[] = [];
   globalThis.fetch = async (url, options) => {
     calls.push(String(url)); assert.equal(options?.credentials, 'include'); assert.equal(options?.cache, 'no-store');
-    return String(url).endsWith('/auth/me') ? Response.json({data:{id:'1',name:'Admin',role:'admin'}}) : new Response(null,{status:204});
+    return String(url).endsWith('/auth/me') ? Response.json({data:{id:'1',name:'Admin',role:'superadmin'}}) : new Response(null,{status:204});
   };
   try {assert.equal((await auth.login('admin','secret',false)).data.id,'1'); assert.deepEqual(calls.map(url => new URL(url).pathname), ['/sanctum/csrf-cookie','/api/v1/auth/login','/api/v1/auth/me']);}
   finally {globalThis.fetch=original;}

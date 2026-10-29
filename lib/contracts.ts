@@ -1,4 +1,4 @@
-export type EmployeeStatus = 'active' | 'inactive' | 'transferred' | 'resigned';
+export type EmployeeStatus = 'active' | 'transferred' | 'resigned';
 export type CardStatus = 'active' | 'revoked' | 'replaced';
 export type Employer = {rowId: string; organization: string; designation: string; duration: string; address: string; phone: string};
 export type Reference = {name: string; relation: string; contact: string};
@@ -8,27 +8,28 @@ export type Dossier = {
   residentialAddress: string; homePhone: string; mobileNumber: string; emergencyContact1: string; emergencyContact2: string;
   employers: Employer[]; primaryReference: Reference; secondaryReference: Reference;
   roleCategory: 'office' | 'motorcycle' | 'van'; vehicleRegistration: string; drivingLicence: string; tokenTaxStatus: string;
-  checklist: {cnic: boolean; bloodReport: boolean; photographs: boolean; utilityBill: boolean};
-  declarationAccepted: boolean; signature: string; signingDate: string;
+  declarationAccepted: boolean;
 };
+// Transferred employees keep working, so their ID cards stay valid and renewable.
+export const workingStatuses: EmployeeStatus[] = ['active', 'transferred'];
 export type DocumentRecord = {id: string; name: string; type: string; uploadedAt: string};
 export type EmploymentEvent = {id: string; title: string; date: string; description: string};
-export type Employee = {id: string; displayId: string; name: string; designation: string; department: string; phone: string; status: EmployeeStatus; photo?: string; dossier: Dossier; documents: DocumentRecord[]; history: EmploymentEvent[]; cards: IDCard[]};
+export type Employee = {id: string; displayId: string; name: string; designation: string; department: string; location?: string; phone: string; status: EmployeeStatus; photo?: string; dossier: Dossier; documents: DocumentRecord[]; history: EmploymentEvent[]; cards: IDCard[]};
 export type CardPolicy = {mode:'unconfigured'|'selected_years'|'eleven_months';canIssue:boolean;canRenew:boolean;validityYears:number[];termLabel:string};
 export type RequestSummary = {total:number;pending:number;approved:number;rejected:number;fieldRoles:number;activeInvitations:number};
 export type RenewalPreview = {currentExpiry:string;proposedExpiry:string;option:'existing'|'new_physical';validityYears:number|null;policy:'selected_years'|'eleven_months'};
-export type IDCard = {asOfDate?:string;credentialState?:'current'|'historical'|'ineligible';id: string; number: string; employeeId: string; employee: {displayId: string; name: string; designation: string; department: string; bloodGroup?: string; photo?: string}; status: CardStatus; issueDate: string; expiryDate: string; verificationToken: string; issuedBy: string};
+export type IDCard = {asOfDate?:string;credentialState?:'current'|'historical'|'ineligible';id: string; number: string; employeeId: string; employee: {displayId: string; name: string; designation: string; department: string; bloodGroup?: string; photo?: string; cnic?: string; emergencyContact?: string}; status: CardStatus; issueDate: string; expiryDate: string; verificationToken: string; issuedBy: string};
 export type EmployeeRequest = {id: string; trackingId: string; status: 'pending' | 'approved' | 'rejected'; submittedAt: string; dossier: Dossier; photo?: string; documents: DocumentRecord[]; employeeId?: string; rejectionReason?: string};
 export type RegistrationInvite = {id: string; candidateName: string; designation: string; department: string; roleCategory?: Dossier['roleCategory']; expiresAt: string; status: 'valid' | 'expired' | 'used' | 'invalid'; token?: string};
 export type InviteValidation = {status: RegistrationInvite['status']; invite?: RegistrationInvite};
-export type Manager = {id: string; name: string; email: string; phone: string; department: string; branch: string; role: 'co-admin' | 'manager'; status: 'active' | 'inactive'};
-export type Notification = {id: string; title: string; category: 'expiring' | 'expired' | 'card_activity' | 'other'; readAt: string | null; createdAt: string; target?: {type: 'employee' | 'card' | 'request'; id: string}};
+export type Manager = {id: string; name: string; email: string; phone: string; department: string; branch: string; role: 'manager'; status: 'active' | 'inactive'; createdAt?: string};
+export type Notification = {id: string; title: string; message: string; category: 'requests' | 'cards' | 'employees' | 'accounts'; level: 'info' | 'success' | 'warning' | 'danger'; readAt: string | null; createdAt: string; target?: {type: 'employee' | 'card' | 'request' | 'manager'; id: string}};
 export type PageResult<T> = {data: T[]; meta: {currentPage: number; lastPage: number; perPage: number; total: number}};
 export type Result<T> = {data: T};
 export type ListQuery = {page?: number; search?: string; status?: string; cardStatus?: string; expiry?: string; sort?: string; category?: string; role?: string};
 export type EmploymentAction = {type: 'transfer'; department: string; location: string; effectiveDate: string; reason: string; notes: string} | {type: 'resign'; resignationDate: string; lastWorkingDate: string; reason: string} | {type: 'other'; title: string; date: string; description: string};
-export type PublicVerification = {status: 'valid' | 'expiring' | 'expired' | 'revoked' | 'invalid'; message: string; card?: {number: string; employeeName: string; employeeDisplayId: string; designation: string; photo?: string; issueDate: string; expiryDate: string}};
-export type DashboardSummary = {totalEmployees: number; activeEmployees: number; resignedEmployees: number; activeCards: number; revokedCards: number; expiringCards: number; expiredCards: number; managerCount: number; pendingRequests: number; expiring: Omit<IDCard,'verificationToken'>[]};
+export type PublicVerification = {status: 'valid' | 'expiring' | 'expired' | 'revoked' | 'invalid'; message: string; card?: {number: string; employeeName: string; employeeDisplayId: string; designation: string; bloodGroup?: string; photo?: string; issueDate: string; expiryDate: string}};
+export type DashboardSummary = {totalEmployees: number; activeEmployees: number; resignedEmployees: number; activeCards: number; revokedCards: number; expiringCards: number; expiredCards: number; managerCount: number; pendingRequests: number; expiring: Omit<IDCard,'verificationToken'>[]; expired: Omit<IDCard,'verificationToken'>[]};
 
 export function cardLabel(card: Pick<IDCard,'status'|'expiryDate'> & Partial<Pick<IDCard,'verificationToken'|'credentialState'|'asOfDate'>>, now = new Date()) {
   if (card.status === 'replaced') return 'Replaced';
@@ -51,3 +52,6 @@ export function daysToExpiry(date: string, now = new Date(), asOfDate?:string) {
   return Number.isNaN(end) ? null : Math.round((end - today) / 86400000);
 }
 export const displayStatus = (status: string) => status.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+
+
+export type CardColor = {color: string; defaultColor: string; isDefault: boolean};

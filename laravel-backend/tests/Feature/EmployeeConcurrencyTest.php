@@ -29,7 +29,7 @@ class EmployeeConcurrencyTest extends TestCase
 
     private function actor(): User
     {
-        return User::create(['name' => 'Parallel Test Operator', 'email' => 'parallel@example.test', 'password' => bin2hex(random_bytes(20)), 'role' => 'admin', 'is_active' => true]);
+        return User::create(['name' => 'Parallel Test Operator', 'email' => 'parallel@example.test', 'password' => bin2hex(random_bytes(20)), 'role' => 'superadmin', 'is_active' => true]);
     }
 
     private function parallel(?User $user, array $jobs): array
@@ -191,7 +191,9 @@ class EmployeeConcurrencyTest extends TestCase
         [$invite, $dossier] = $this->candidateFixture($user);
         $first = $this->postJson('/api/v1/employee-requests', ['token' => $invite['token'], 'dossier' => json_encode($dossier)])->assertCreated();
         [$secondInvite] = $this->candidateFixture($user);
-        $second = $this->postJson('/api/v1/employee-requests', ['token' => $secondInvite['token'], 'dossier' => json_encode($dossier)])->assertCreated();
+        // Submission now refuses a second pending request with the same CNIC, so force the duplicate into storage to test the approval race itself.
+        $second = $this->postJson('/api/v1/employee-requests', ['token' => $secondInvite['token'], 'dossier' => json_encode(array_replace($dossier, ['cnic' => '42101-'.random_int(1000000, 9999999).'-9']))])->assertCreated();
+        \App\Models\CandidateRequest::findOrFail($second->json('data.id'))->update(['dossier' => $dossier, 'cnic_lookup' => \App\Support\EmployeeIdentity::lookup($dossier['cnic'])]);
         $jobs = [];
         foreach ([$first->json('data.id'), $second->json('data.id')] as $id) {
             $jobs[] = ['method' => 'POST', 'path' => '/api/v1/employee-requests/'.$id.'/approve', 'parameters' => []];

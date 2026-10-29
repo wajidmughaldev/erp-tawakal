@@ -20,7 +20,7 @@ if (! in_array(parse_url($url, PHP_URL_HOST), ['localhost', '127.0.0.1'], true))
 }
 
 $password = bin2hex(random_bytes(20));
-$user = User::create(['name' => 'Candidate HTTP Operator', 'email' => bin2hex(random_bytes(8)).'@example.test', 'password' => $password, 'role' => 'admin', 'is_active' => true]);
+$user = User::create(['name' => 'Candidate HTTP Operator', 'email' => bin2hex(random_bytes(8)).'@example.test', 'password' => $password, 'role' => 'superadmin', 'is_active' => true]);
 $admin = curl_init();
 $public = curl_init();
 foreach ([$admin, $public] as $handle) {
@@ -70,7 +70,7 @@ try {
     $expect($request($public, 'GET', '/api/v1/employee-requests')[0], 401, 'Guest protection');
     $expect($request($public, 'POST', '/api/v1/registration-invites/validate', ['token' => str_repeat('A', 43)], false, null, null)[0], 419, 'Missing CSRF');
     $expect($request($admin, 'GET', '/sanctum/csrf-cookie')[0], 204, 'Admin CSRF bootstrap');
-    $expect($request($admin, 'POST', '/api/v1/auth/login', ['identifier' => $user->email, 'password' => $password, 'remember' => false])[0], 204, 'Admin login');
+    $expect($request($admin, 'POST', '/api/v1/auth/login', ['email' => $user->email, 'password' => $password, 'remember' => false])[0], 204, 'Admin login');
     $expect($request($public, 'GET', '/sanctum/csrf-cookie')[0], 204, 'Anonymous CSRF bootstrap');
     $expect($request($public, 'POST', '/api/v1/registration-invites/validate', ['token' => str_repeat('A', 43)], false, null, true)[0], 419, 'Invalid CSRF');
     foreach (['approve', 'reject'] as $decision) {

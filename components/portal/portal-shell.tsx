@@ -15,7 +15,7 @@ const nav = [
   {href: '/employees', label: 'Employees', icon: Users},
   {href: '/employee-requests', label: 'Employee Requests', icon: ShieldCheck},
   {href: '/id-cards', label: 'ID Cards', icon: CreditCard},
-  {href: '/managers', label: 'Managers', icon: UserCog},
+  {href: '/managers', label: 'Managers', icon: UserCog, superadminOnly: true},
   {href: '/notifications', label: 'Notifications', icon: Bell},
 ];
 
@@ -36,7 +36,8 @@ export function PortalShell({children}: {children: React.ReactNode}) {
   useEffect(() => {
     const update=()=>request<{unreadCount: number}>('/notifications?summary=true').then(result=>setUnread(result.unreadCount)).catch(()=>setUnread(null));
     void update();window.addEventListener('portal-notifications-changed',update);
-    return ()=>window.removeEventListener('portal-notifications-changed',update);
+    const timer=window.setInterval(()=>{if(!document.hidden)void update();},60000);
+    return ()=>{window.removeEventListener('portal-notifications-changed',update);window.clearInterval(timer);};
   }, [pathname]);
   async function logout() {
     if (loggingOut) return;
@@ -52,17 +53,15 @@ export function PortalShell({children}: {children: React.ReactNode}) {
       <aside id="portal-navigation" className={`no-print fixed left-0 top-0 z-30 h-screen w-[250px] flex-col justify-between bg-[var(--brand-dark)] text-white ${open ? 'flex' : 'hidden'} lg:flex`}>
         <div>
           <Link href="/dashboard" className="flex h-[68px] items-center border-b border-white/10 px-5">
-            <span className="mr-3 grid size-9 place-items-center rounded-md border border-[var(--brand-gold)] bg-[#d4af37]/15 text-[var(--brand-gold)]">
-              <ShieldCheck size={19} />
-            </span>
+            <img src="/brand/logo-white.svg" alt="Tawakal Enterprises" className="mr-3 size-11" />
             <span>
-              <span className="block text-sm font-semibold">Tawakkal Ent.</span>
+              <span className="block text-sm font-semibold">Tawakal Enterprises</span>
               <span className="block text-xs text-white/55">Smart ID Portal</span>
             </span>
           </Link>
           <nav aria-label="Main navigation" className="px-3 py-4">
             <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-white/45">Main Menu</div>
-            {nav.map((item) => {
+            {nav.filter((item) => !item.superadminOnly || user?.role === 'superadmin').map((item) => {
               const Icon = item.icon;
               const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
@@ -83,6 +82,7 @@ export function PortalShell({children}: {children: React.ReactNode}) {
         <div className="border-t border-white/10 bg-black/15 p-4 text-xs text-white/60">
           <div className="font-semibold text-white">{user?.name}</div>
           <div>{user?.role}</div>
+          <Link href="/account" className="mt-2 block text-white/70 hover:text-white">Change password</Link>
           <button type="button" disabled={loggingOut} onClick={() => void logout()} className="mt-3 inline-flex items-center gap-2 text-white/70 hover:text-white">
             <LogOut size={15} />
             {loggingOut ? 'Signing out…' : 'Sign out'}

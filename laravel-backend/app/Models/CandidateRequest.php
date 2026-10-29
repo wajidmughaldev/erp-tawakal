@@ -24,6 +24,11 @@ class CandidateRequest extends Model
         return $this->belongsTo(RegistrationInvite::class, 'registration_invite_id');
     }
 
+    public function documents()
+    {
+        return $this->hasMany(CandidateDocument::class);
+    }
+
     public function employee()
     {
         return $this->belongsTo(Employee::class);

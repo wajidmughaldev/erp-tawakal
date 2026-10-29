@@ -1,0 +1,65 @@
+/*
+ * Vertical CR80 employee ID card (54 x 85.6 mm). Both faces are laid out on a 540 x 856 px canvas and
+ * scaled with --idc-scale, so the screen preview and the printed card share one design.
+ */
+.idc-sheet { --idc-scale: .62; /* --idc-indigo and --idc-indigo-dark are set from the global card colour setting */ --idc-indigo: #092a4a; --idc-indigo-dark: #071f38; --idc-gold: #c9a227; --idc-ink: #161231; --idc-muted: #6b6784; --idc-line: #e3e1ee; display: flex; flex-wrap: wrap; gap: 24px; }
+.idc-frame { width: calc(540px * var(--idc-scale)); height: calc(856px * var(--idc-scale)); flex: none; }
+.idc-card { width: 540px; height: 856px; border-radius: 34px; background: #fff; position: relative; overflow: hidden; color: var(--idc-ink); transform: scale(var(--idc-scale)); transform-origin: top left; box-shadow: 0 18px 50px rgba(9, 42, 74, .28); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.idc-card * { box-sizing: border-box; }
+.idc-hole { position: absolute; top: 22px; left: 50%; width: 96px; height: 16px; margin-left: -48px; border-radius: 10px; background: #e9e8f1; box-shadow: inset 0 2px 4px rgba(0, 0, 0, .25); z-index: 5; }
+
+/* front */
+.idc-band { position: absolute; inset: 0 0 auto 0; height: 330px; background: linear-gradient(160deg, var(--idc-indigo) 0%, var(--idc-indigo-dark) 100%); }
+.idc-band::after { content: ''; position: absolute; left: -10%; right: -10%; bottom: -90px; height: 170px; background: #fff; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+.idc-band::before { content: ''; position: absolute; right: -70px; top: -70px; width: 240px; height: 240px; border-radius: 50%; border: 30px solid rgba(255, 255, 255, .06); }
+.idc-brand { position: absolute; top: 62px; left: 0; right: 0; text-align: center; z-index: 2; }
+.idc-brand img { width: 112px; height: 112px; display: block; margin: 0 auto; }
+.idc-kind { margin-top: 6px; color: #fff; font-size: 15px; letter-spacing: .34em; font-weight: 600; text-indent: .34em; }
+.idc-kind::after { content: ''; display: block; width: 54px; height: 3px; background: var(--idc-gold); margin: 10px auto 0; border-radius: 2px; }
+.idc-photo { position: absolute; top: 236px; left: 50%; width: 210px; height: 250px; margin-left: -105px; border-radius: 22px; border: 8px solid #fff; background: #d9d6ea; box-shadow: 0 8px 22px rgba(9, 42, 74, .28); overflow: hidden; z-index: 3; }
+.idc-photo img, .idc-photo svg { width: 100%; height: 100%; display: block; object-fit: cover; }
+.idc-person { position: absolute; top: 500px; left: 30px; right: 30px; text-align: center; }
+.idc-name { font-size: 36px; font-weight: 800; color: var(--idc-indigo); line-height: 1.1; overflow-wrap: anywhere; }
+.idc-role { margin-top: 8px; font-size: 20px; color: var(--idc-muted); font-weight: 500; overflow-wrap: anywhere; }
+.idc-rule { width: 72px; height: 3px; background: var(--idc-gold); margin: 18px auto 0; border-radius: 2px; }
+.idc-facts { position: absolute; top: 640px; left: 40px; right: 40px; display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 6px; text-align: center; }
+.idc-facts > div + div { border-left: 1px solid var(--idc-line); }
+.idc-k { font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--idc-muted); font-weight: 600; }
+.idc-v { margin-top: 7px; font-size: 21px; font-weight: 700; }
+.idc-mono { font-family: Consolas, 'Courier New', monospace; color: var(--idc-indigo); }
+.idc-blood { display: inline-block; min-width: 56px; padding: 3px 12px; border-radius: 20px; background: #c62839; color: #fff; font-size: 20px; }
+.idc-foot { position: absolute; left: 0; right: 0; bottom: 0; background: var(--idc-indigo); color: #fff; text-align: center; }
+.idc-foot::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: var(--idc-gold); }
+.idc-front .idc-foot { height: 84px; padding-top: 22px; }
+.idc-foot b { display: block; font-size: 16px; letter-spacing: .18em; }
+.idc-foot span { display: block; margin-top: 6px; font-size: 12.5px; opacity: .85; letter-spacing: .05em; }
+
+/* back */
+.idc-top { position: absolute; left: 0; right: 0; top: 0; height: 150px; background: linear-gradient(160deg, var(--idc-indigo) 0%, var(--idc-indigo-dark) 100%); text-align: center; padding-top: 58px; color: #fff; }
+.idc-top b { font-size: 20px; letter-spacing: .3em; text-indent: .3em; display: block; }
+.idc-top span { display: block; margin-top: 8px; font-size: 12.5px; letter-spacing: .2em; opacity: .8; }
+.idc-top::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: var(--idc-gold); }
+.idc-qr { position: absolute; top: 178px; left: 50%; width: 256px; margin-left: -128px; text-align: center; }
+.idc-qr-frame { padding: 14px; border: 2px solid var(--idc-line); border-radius: 20px; background: #fff; min-height: 256px; }
+.idc-qr-frame img { width: 100%; display: block; }
+.idc-qr p { margin-top: 12px; font-size: 15px; font-weight: 600; color: var(--idc-indigo); }
+.idc-qr small { display: block; margin-top: 3px; font-size: 12px; color: var(--idc-muted); }
+.idc-grid3 { position: absolute; top: 524px; left: 36px; right: 36px; display: grid; grid-template-columns: 1.35fr 1fr 1fr; text-align: center; padding: 14px 0; border-top: 1px solid var(--idc-line); border-bottom: 1px solid var(--idc-line); }
+.idc-grid3 > div + div { border-left: 1px solid var(--idc-line); }
+.idc-grid3 .idc-v { margin-top: 6px; font-size: 17px; }
+.idc-grid3 .idc-mono { font-size: 15px; }
+.idc-rows { position: absolute; top: 604px; left: 40px; right: 40px; }
+.idc-row { display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; border-bottom: 1px dashed var(--idc-line); }
+.idc-row .idc-v { margin: 0; font-size: 16.5px; font-weight: 600; }
+.idc-terms { position: absolute; left: 40px; right: 40px; bottom: 96px; font-size: 11.5px; line-height: 1.55; color: var(--idc-muted); text-align: center; }
+.idc-back .idc-foot { height: 82px; padding-top: 16px; }
+.idc-back .idc-foot img { height: 34px; display: block; margin: 0 auto; }
+
+/* printing: one card face per 54 x 85.6 mm page */
+@page idcard { size: 54mm 85.6mm; margin: 0; }
+@media print {
+  .idc-sheet { --idc-scale: .37795; page: idcard; display: block; gap: 0; }
+  .idc-frame { break-after: page; break-inside: avoid; overflow: hidden; }
+  .idc-frame:last-child { break-after: auto; }
+  .idc-card { box-shadow: none; border-radius: 0; }
+}

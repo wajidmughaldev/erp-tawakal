@@ -42,18 +42,18 @@ class IdCard extends Model
 
     public function scopeEligibleCurrent($query)
     {
-        return $query->where('id_cards.status', 'active')->whereNotNull('id_cards.verification_token_digest')->whereColumn('id_cards.current_employee_id', 'id_cards.employee_id')->whereHas('employee', fn ($employee) => $employee->whereNull('employees.deleted_at')->where('employees.status', 'active'));
+        return $query->where('id_cards.status', 'active')->whereNotNull('id_cards.verification_token_digest')->whereColumn('id_cards.current_employee_id', 'id_cards.employee_id')->whereHas('employee', fn ($employee) => $employee->whereNull('employees.deleted_at')->whereIn('employees.status', Employee::WORKING_STATUSES));
     }
 
     public function scopeDisplayStatus($query, string $status)
     {
         $today = CardValidity::today()->toDateString();
         $limit = CardValidity::today()->addDays(30)->toDateString();
-        if (in_array($status, ['active', 'expiring', 'expiring_soon', 'expired'], true)) {
+        if (in_array($status, ['active', 'active_only', 'expiring', 'expiring_soon', 'expired'], true)) {
             $query->eligibleCurrent();
 
             return match ($status) {
-                'active' => $query->whereDate('id_cards.expiry_date', '>=', $today),'expired' => $query->whereDate('id_cards.expiry_date', '<', $today),default => $query->whereBetween('id_cards.expiry_date', [$today, $limit])
+                'active' => $query->whereDate('id_cards.expiry_date', '>=', $today),'active_only' => $query->whereDate('id_cards.expiry_date', '>', $limit),'expired' => $query->whereDate('id_cards.expiry_date', '<', $today),default => $query->whereBetween('id_cards.expiry_date', [$today, $limit])
             };
         }
 

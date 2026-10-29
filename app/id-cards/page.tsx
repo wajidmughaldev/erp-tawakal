@@ -23,13 +23,12 @@ function IdCardsContent() {
   const params=useSearchParams();
   const [query, setQuery] = useState(params.get('search')??'');
   const [status, setStatus] = useState(initialFilter(params,'status','All'));
-  const [expiry, setExpiry] = useState('All');
   const [sort, setSort] = useState(initialFilter(params,'sort','Expiry Soonest'));
 
   const [page, setPage] = useState(initialPage(params));
   const summary = useResource(dashboardApi);
-  const state = useResource(() => cardsApi.list({page,search:query,status:status === 'All' ? undefined : status.toLowerCase().replaceAll(' ','_'),expiry:expiry === 'All' ? undefined : 'expiring',sort:sort === 'Expiry Soonest' ? 'expiry_asc' : sort === 'Newest First' ? 'issue_desc' : 'issue_asc'}), [page,query,status,expiry,sort]);
-  useEffect(()=>persistListQuery({search:query,status,page,expiry,sort}),[query,status,page,expiry,sort]);
+  const state = useResource(() => cardsApi.list({page,search:query,status:status === 'All' ? undefined : status.toLowerCase().replaceAll(' ','_'),sort:sort === 'Expiry Soonest' ? 'expiry_asc' : sort === 'Newest First' ? 'issue_desc' : 'issue_asc'}), [page,query,status,sort]);
+  useEffect(()=>persistListQuery({search:query,status,page,sort}),[query,status,page,sort]);
   const filtered = (state.data?.data ?? []).map(item => ({id:item.id,card:item.number,employee:item.employee.name,initials:item.employee.name.slice(0,2),empId:item.employee.displayId,issue:item.issueDate,expiry:item.expiryDate,status:cardLabel(item),qr:cardLabel(item)==='Active' || cardLabel(item)==='Expiring Soon' ? 'Active' : 'Deactivated'}));
 
   return (
@@ -50,11 +49,11 @@ function IdCardsContent() {
           <StatCard label="Active Cards" value={String(summary.data?.data.activeCards ?? '—')} helper="Valid QR & access credentials" valueClass="text-emerald-700" />
           <StatCard label="Expiring Soon" value={String(summary.data?.data.expiringCards ?? '—')} helper="Within next 30 days" valueClass="text-amber-600" borderClass="border-l-2 border-l-yellow-400" />
           <StatCard label="Expired" value={String(summary.data?.data.expiredCards ?? '—')} helper="Needs immediate renewal" valueClass="text-rose-600" helperClass="text-rose-600" borderClass="border-l-2 border-l-red-500" />
-          <StatCard label="Deactivated" value={String(summary.data?.data.revokedCards??'—')} helper="Resigned or revoked" valueClass="text-slate-500" />
+          <StatCard label="Revoked" value={String(summary.data?.data.revokedCards??'—')} helper="Resigned or revoked" valueClass="text-slate-500" />
         </div>
 
         <section className="mt-6 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="grid gap-2 lg:grid-cols-[1.35fr_.65fr_.65fr_.65fr]">
+          <div className="grid gap-2 lg:grid-cols-[1.35fr_.65fr_.65fr]">
             <div className="relative">
               <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
               <input
@@ -64,8 +63,7 @@ function IdCardsContent() {
                 onChange={(event) => {setQuery(event.target.value); setPage(1);}}
               />
             </div>
-            <FilterSelect label="Status" value={status} onChange={value => {setStatus(value); setPage(1);}} options={['All', 'Active', 'Expiring Soon', 'Expired', 'Replaced']} />
-            <FilterSelect label="Expiry" value={expiry} onChange={value => {setExpiry(value); setPage(1);}} options={['All', 'Expiring Soon']} />
+            <FilterSelect label="Status" value={status} onChange={value => {setStatus(value); setPage(1);}} options={['All', 'Active', 'Expiring Soon', 'Expired', 'Revoked', 'Replaced']} />
             <FilterSelect label="Sort" value={sort} onChange={value => {setSort(value); setPage(1);}} options={['Expiry Soonest', 'Newest First', 'Oldest First']} />
           </div>
         </section>
@@ -103,7 +101,7 @@ function IdCardsContent() {
                     <td className="px-4 py-[13px]"><span className={`rounded-md border px-2 py-1 text-[10px] font-medium ${statusClass(card.status)}`}>{card.status}</span></td>
                     <td className={`px-4 py-[13px] text-[12px] ${card.qr === 'Active' ? 'text-emerald-700' : 'text-slate-600'}`}>{card.qr}</td>
                     <td className="px-4 py-[13px] text-right">
-                      <Link href={`/id-cards/${encodeURIComponent(card.id)}`} className="inline-flex h-8 items-center rounded-md border border-slate-500/80 px-2.5 text-[12px]">View / Actions</Link>
+                      <Link href={`/id-cards/view?id=${encodeURIComponent(card.id)}`} className="inline-flex h-8 items-center rounded-md border border-slate-500/80 px-2.5 text-[12px]">View / Actions</Link>
                     </td>
                   </tr>
                 ))}

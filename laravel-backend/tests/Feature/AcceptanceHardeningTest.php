@@ -24,7 +24,7 @@ class AcceptanceHardeningTest extends TestCase
     {
         parent::setUp();
         config(['cards.validity_policy' => 'selected_years', 'app.timezone' => 'Asia/Karachi']);
-        $this->actingAs(User::create(['name' => 'Acceptance Operator', 'email' => 'acceptance@example.test', 'role' => 'admin', 'is_active' => true, 'password' => bin2hex(random_bytes(20))]), 'web');
+        $this->actingAs(User::create(['name' => 'Acceptance Operator', 'email' => 'acceptance@example.test', 'role' => 'superadmin', 'is_active' => true, 'password' => bin2hex(random_bytes(20))]), 'web');
     }
 
     private function fixture(int $days = 31, string $state = 'active'): IdCard
@@ -52,7 +52,7 @@ class AcceptanceHardeningTest extends TestCase
             $legacy = $this->fixture(10);
             $legacy->update(['verification_token_digest' => null, 'verification_token' => null, 'current_employee_id' => null]);
             $inactive = $this->fixture(10);
-            $inactive->employee->update(['status' => 'inactive']);
+            $inactive->employee->update(['status' => 'resigned']);
             $deleted = $this->fixture(10);
             $deleted->employee->delete();
             $this->getJson('/api/v1/dashboard/summary')->assertOk()->assertJsonPath('data.activeCards', 5)->assertJsonPath('data.expiringCards', 4)->assertJsonPath('data.expiredCards', 1)->assertJsonPath('data.revokedCards', 1);

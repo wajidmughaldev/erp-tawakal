@@ -16,7 +16,7 @@ if (! in_array(parse_url($url, PHP_URL_HOST), ['localhost', '127.0.0.1'], true))
     throw new RuntimeException('HTTP smoke test only supports a local server.');
 }
 $password = bin2hex(random_bytes(20));
-$user = User::create(['name' => 'HTTP Test', 'email' => bin2hex(random_bytes(8)).'@example.test', 'role' => 'admin', 'password' => $password]);
+$user = User::create(['name' => 'HTTP Test', 'email' => bin2hex(random_bytes(8)).'@example.test', 'role' => 'superadmin', 'password' => $password]);
 $curl = curl_init();
 curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEFILE => '', CURLOPT_TIMEOUT => 15]);
 $request = function (string $method, string $path, ?array $body = null, bool $csrf = true) use ($curl, $url): array {
@@ -56,7 +56,7 @@ try {
     $csrfResponse = $request('GET', '/sanctum/csrf-cookie');
     $expect($csrfResponse[0], 204, 'CSRF bootstrap');
     $expect(str_contains($csrfResponse[2], 'httponly'), true, 'HttpOnly session cookie');
-    $credentials = ['identifier' => $user->email, 'password' => $password, 'remember' => true];
+    $credentials = ['email' => $user->email, 'password' => $password, 'remember' => true];
     $expect($request('POST', '/api/v1/auth/login', $credentials, false)[0], 419, 'Missing CSRF rejection');
     $expect($request('POST', '/api/v1/auth/login', $credentials)[0], 204, 'Cookie login');
     $me = $request('GET', '/api/v1/auth/me');

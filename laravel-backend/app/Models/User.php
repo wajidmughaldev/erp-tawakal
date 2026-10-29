@@ -3,14 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Notifications\PortalResetPassword;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use InvalidArgumentException;
 
 class User extends Authenticatable
 {
-    public const ROLES = ['admin', 'co-admin', 'manager'];
+    use Notifiable;
 
-    protected $fillable = ['name', 'email', 'username', 'password', 'role', 'is_active'];
+    public const ROLES = ['superadmin', 'manager'];
+
+    protected $fillable = ['name', 'email', 'username', 'phone', 'department', 'branch', 'password', 'role', 'is_active'];
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -28,6 +32,11 @@ class User extends Authenticatable
 
             return $value;
         });
+    }
+
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new PortalResetPassword($token));
     }
 
     protected function email(): Attribute

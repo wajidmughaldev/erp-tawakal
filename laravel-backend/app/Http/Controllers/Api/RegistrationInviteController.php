@@ -21,9 +21,10 @@ class RegistrationInviteController extends Controller
 
     public function store(Request $request)
     {
-        $input = $request->validate(['candidateName' => ['required', 'string', 'max:255'], 'designation' => ['required', 'string', 'max:255'], 'department' => ['required', 'string', 'max:255'], 'expiresAt' => ['required', 'date', 'after:now'], 'roleCategory' => ['sometimes', Rule::in(['office', 'motorcycle', 'van'])]]);
+        // Links carry no candidate details and are valid for exactly one day; the candidate fills in everything.
+        $input = $request->validate(['candidateName' => ['sometimes', 'nullable', 'string', 'max:255'], 'designation' => ['sometimes', 'nullable', 'string', 'max:255'], 'department' => ['sometimes', 'nullable', 'string', 'max:255'], 'roleCategory' => ['sometimes', 'nullable', Rule::in(['office', 'motorcycle', 'van'])]]);
         $token = InviteToken::generate();
-        $invite = RegistrationInvite::create(['candidate_name' => $input['candidateName'], 'designation' => $input['designation'], 'department' => $input['department'], 'expires_at' => CarbonImmutable::parse($input['expiresAt'])->utc(), 'role_category' => $input['roleCategory'] ?? null, 'token_digest' => InviteToken::digest($token), 'token' => $token, 'created_by' => $request->user()->id]);
+        $invite = RegistrationInvite::create(['candidate_name' => $input['candidateName'] ?? null, 'designation' => $input['designation'] ?? null, 'department' => $input['department'] ?? null, 'expires_at' => CarbonImmutable::now()->addDay()->utc(), 'role_category' => $input['roleCategory'] ?? null, 'token_digest' => InviteToken::digest($token), 'token' => $token, 'created_by' => $request->user()->id]);
 
         return response()->json(['data' => $invite->details(true)], 201)->header('Cache-Control', 'no-store');
     }

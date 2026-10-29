@@ -1,0 +1,9 @@
+# This folder must never be reachable from the web. It normally sits outside public_html;
+# this file is a safety net in case it is uploaded inside it by mistake.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order deny,allow
+    Deny from all
+</IfModule>

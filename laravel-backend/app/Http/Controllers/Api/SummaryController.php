@@ -15,14 +15,16 @@ class SummaryController extends Controller
 {
     public function dashboard(Request $request)
     {
-        $expiring = IdCard::with('employee')->displayStatus('expiring_soon')->orderBy('expiry_date')->orderBy('id')->get()->map(function ($card) use ($request) {
+        $cards = fn ($status, $direction) => IdCard::with('employee')->displayStatus($status)->orderBy('expiry_date', $direction)->orderBy('id')->limit(10)->get()->map(function ($card) use ($request) {
             $data = (new IdCardResource($card))->resolve($request);
             unset($data['verificationToken']);
 
             return $data;
         });
+        $expiring = $cards('expiring_soon', 'asc');
+        $expired = $cards('expired', 'desc');
 
-        return response()->json(['data' => ['totalEmployees' => Employee::count(), 'activeEmployees' => Employee::where('status', 'active')->count(), 'resignedEmployees' => Employee::where('status', 'resigned')->count(), 'activeCards' => IdCard::displayStatus('active')->count(), 'revokedCards' => IdCard::displayStatus('revoked')->count(), 'expiringCards' => IdCard::displayStatus('expiring_soon')->count(), 'expiredCards' => IdCard::displayStatus('expired')->count(), 'managerCount' => User::whereIn('role', ['co-admin', 'manager'])->where('is_active', true)->count(), 'pendingRequests' => CandidateRequest::where('status', 'pending')->count(), 'expiring' => $expiring]])->header('Cache-Control', 'no-store');
+        return response()->json(['data' => ['totalEmployees' => Employee::count(), 'activeEmployees' => Employee::where('status', 'active')->count(), 'resignedEmployees' => Employee::where('status', 'resigned')->count(), 'activeCards' => IdCard::displayStatus('active')->count(), 'revokedCards' => IdCard::displayStatus('revoked')->count(), 'expiringCards' => IdCard::displayStatus('expiring_soon')->count(), 'expiredCards' => IdCard::displayStatus('expired')->count(), 'managerCount' => User::where('role', 'manager')->where('is_active', true)->count(), 'pendingRequests' => CandidateRequest::where('status', 'pending')->count(), 'expiring' => $expiring, 'expired' => $expired]])->header('Cache-Control', 'no-store');
     }
 
     public function requests()

@@ -1,5 +1,5 @@
 import {request, queryString} from './api-client';
-import type {Employee, IDCard, EmployeeRequest, RegistrationInvite, InviteValidation, Manager, Notification, ListQuery, PageResult, Result, Dossier, EmploymentAction, PublicVerification, DashboardSummary, DocumentRecord, CardPolicy, RequestSummary, RenewalPreview} from './contracts';
+import type {Employee, IDCard, EmployeeRequest, RegistrationInvite, InviteValidation, Manager, Notification, ListQuery, PageResult, Result, Dossier, EmploymentAction, PublicVerification, DashboardSummary, DocumentRecord, CardPolicy, RequestSummary, RenewalPreview, CardColor} from './contracts';
 const key = encodeURIComponent;
 const json = (body: unknown, method = 'POST') => ({method, body: JSON.stringify(body)});
 function resource<T>(path: string) {
@@ -23,18 +23,34 @@ export const employeesApi = {
   update: (id: string, dossier: Dossier, photo?: File, etag?: string) => request<Result<Employee>>(`/employees/${key(id)}`, {method:'POST',headers:etag?{'If-Match':etag}:{},body:dossierBody(dossier,photo,true)}),
   action: (id: string, action: EmploymentAction) => request<Result<Employee>>(`/employees/${key(id)}/actions`, json(action)),
   documents: (id: string) => request<Result<DocumentRecord[]>>(`/employees/${key(id)}/documents`),
+  remove: (id: string) => request<void>(`/employees/${key(id)}`, {method: 'DELETE'}),
+  checkCnic: (cnic: string, exceptEmployeeId?: string) => request<{registered: boolean}>('/employees/check-cnic', json({cnic, exceptEmployeeId: exceptEmployeeId ? Number(exceptEmployeeId) : undefined})),
+  uploadDocument: (id: string, type: string, file: File) => {
+    const body = new FormData();
+    body.set('type', type);
+    body.set('file', file);
+    return request<Result<DocumentRecord>>(`/employees/${key(id)}/documents`, {method: 'POST', body});
+  },
+  deleteDocument: (documentId: string) => request<void>(`/documents/${key(documentId)}`, {method: 'DELETE'}),
 };
 export const requestsApi = {
   ...resource<EmployeeRequest>('/employee-requests'),
   summary: () => request<Result<RequestSummary>>('/employee-requests/summary'),
-  submit: (token: string, dossier: Dossier, photo?: File) => {const body = dossierBody(dossier, photo); body.set('token', token); return request<Result<EmployeeRequest>>('/employee-requests', {method: 'POST', body, public: true});},
+  submit: (token: string, dossier: Dossier, photo?: File, documents: {type: string; file: File}[] = []) => {
+    const body = dossierBody(dossier, photo);
+    body.set('token', token);
+    documents.forEach((document, index) => {body.set(`documents[${index}][type]`, document.type); body.set(`documents[${index}][file]`, document.file);});
+    return request<Result<EmployeeRequest>>('/employee-requests', {method: 'POST', body, public: true});
+  },
   approve: (id: string) => request<Result<EmployeeRequest>>(`/employee-requests/${key(id)}/approve`, json({})),
   reject: (id: string, reason: string) => request<Result<EmployeeRequest>>(`/employee-requests/${key(id)}/reject`, json({reason})),
 };
 export const invitesApi = {
   list: (query:ListQuery={})=>request<PageResult<RegistrationInvite>>('/registration-invites'+queryString(query)),
   validate: (token: string) => request<InviteValidation>('/registration-invites/validate', {...json({token}), public: true}),
-  create: (body: {candidateName: string; designation: string; department: string; expiresAt:string;roleCategory?:Dossier['roleCategory']}) => request<Result<RegistrationInvite>>('/registration-invites', json(body)),
+  // A link needs no candidate details and is valid for 24 hours.
+  create: () => request<Result<RegistrationInvite>>('/registration-invites', json({})),
+  checkCnic: (token: string, cnic: string) => request<{registered: boolean}>('/registration-invites/check-cnic', {...json({token, cnic}), public: true}),
 };
 export const cardsApi = {
   ...resource<IDCard>('/id-cards'),
@@ -42,21 +58,26 @@ export const cardsApi = {
   preview: async(id:string,option:'existing'|'new_physical')=>{let etag:string|undefined;const result=await request<Result<RenewalPreview>>(`/id-cards/${key(id)}/renewal-preview`+queryString({option}),{onResponse:headers=>{etag=headers.get('ETag')??undefined;}});return {...result,etag};},
   policy: () => request<Result<CardPolicy>>('/id-cards/policy'),
   issue: (employeeId: string, validityYears?: number) => request<Result<IDCard>>('/id-cards', json({employeeId, validityYears})),
+  eligibleEmployees: () => request<Result<{id: string; displayId: string; name: string; designation: string}[]>>('/id-cards/eligible-employees'),
   renew: (id:string,option:'existing'|'new_physical',idempotencyKey:string,etag:string) => request<Result<IDCard>>(`/id-cards/${key(id)}/renew`, {...json({option}),headers:{'Idempotency-Key':idempotencyKey,'If-Match':etag}}),
   reissue: (id: string, reason: string, acknowledged: boolean) => request<Result<IDCard>>(`/id-cards/${key(id)}/reissue`, json({reason, acknowledged})),
   deactivate: (id: string, reason: string) => request<Result<IDCard>>(`/id-cards/${key(id)}/deactivate`, json({reason})),
   verify: (token: string) => request<PublicVerification>('/verify-card', {...json({token}), public: true}),
 };
+export const cardSettingsApi = {
+  get: () => request<Result<CardColor>>('/id-cards/settings'),
+  update: (color: string) => request<Result<CardColor>>('/id-cards/settings', json({color}, 'PUT')),
+  reset: () => request<Result<CardColor>>('/id-cards/settings', {method: 'DELETE'}),
+};
 export const managersApi = {
   ...resource<Manager>('/managers'),
-  create: (body: Omit<Manager, 'id'> & {initialPassword: string}) => request<Result<Manager>>('/managers', json(body)),
-  update: (id: string, body: Omit<Manager, 'id'>) => request<Result<Manager>>(`/managers/${key(id)}`, json(body, 'PATCH')),
-  remove: (id: string) => request<void>(`/managers/${key(id)}`, {method: 'DELETE'}),
+  create: (body: Omit<Manager, 'id' | 'role' | 'status' | 'createdAt'> & {initialPassword: string}) => request<Result<Manager>>('/managers', json(body)),
+  update: (id: string, body: Omit<Manager, 'id' | 'role' | 'createdAt'>) => request<Result<Manager>>(`/managers/${key(id)}`, json(body, 'PATCH')),
 };
 export const notificationsApi = {
   ...resource<Notification>('/notifications'),
-  read: (id: string) => request<Result<Notification>>(`/notifications/${key(id)}/read`, json({})),
-  clearRead: () => request<void>('/notifications/clear-read', json({})),
+  readAll: () => request<void>('/notifications/read-all', json({})),
 };
 export const dashboardApi = () => request<Result<DashboardSummary>>('/dashboard/summary');
 export const downloadDocument = (id: string) => request<Blob>(`/documents/${key(id)}/download`, {format:'blob'});
+export const downloadCandidateDocument = (id: string) => request<Blob>(`/candidate-documents/${key(id)}/download`, {format:'blob'});

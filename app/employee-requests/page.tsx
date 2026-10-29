@@ -7,7 +7,7 @@ import {DataState} from '@/components/portal/data-state';
 import {Pagination} from '@/components/portal/pagination';
 import {RequestReview, InviteDialog} from '@/components/portal/request-dialogs';
 import Link from 'next/link';
-import {Check, ExternalLink, Link2, Plus} from 'lucide-react';
+import {Check, Plus} from 'lucide-react';
 import {PortalShell} from '@/components/portal/portal-shell';
 
 export default function EmployeeRequestsPage() {
@@ -27,28 +27,12 @@ export default function EmployeeRequestsPage() {
   const approved=summary.data?.data.approved??'—';
   const requests=(state.data?.data??[]);
   const filtered=requests.map(item=>({...item,name:item.dossier.fullName,nameUrdu:'',designation:item.dossier.designation,role:item.dossier.roleCategory==='van'?'Delivery Van Driver':item.dossier.roleCategory==='motorcycle'?'Motorcycle Field Sales Executive':'Office / General',cnic:item.dossier.cnic,phone:item.dossier.mobileNumber,joining:item.dossier.joiningDate,submitted:item.submittedAt,status:item.status==='pending'?'Pending Review':item.status==='approved'?'Approved':'Rejected'}));
-  const invitationLinks=(invites.data?.data??[]).map(item=>({...item,candidate:item.candidateName,target:item.designation+' / '+item.department,expires:item.expiresAt}));
+  const invitationLinks=(invites.data?.data??[]).map(item=>({...item,expires:item.expiresAt}));
   async function copy(token?:string){if(!token){setMessage('This invitation has no shareable token.');return;}try{await navigator.clipboard.writeText(window.location.origin+'/employee-registration?token='+encodeURIComponent(token));setMessage('Registration link copied.');}catch{setMessage('Clipboard access failed. Open the candidate link and copy its address.');}}
 
   return (
     <PortalShell>
       <div className="min-h-[calc(100vh-124px)] bg-[#f4f7fb] text-slate-950">
-      <div className="border-b border-slate-200 bg-white px-6 py-4">
-        <div className="flex flex-col justify-between gap-3 lg:flex-row lg:items-center">
-          <p className="text-[12px] text-slate-600">Tawakkal Enterprises Channel 2 · Onboarding Administration</p>
-          <div className="flex flex-wrap gap-2">
-            <button className="inline-flex h-8 items-center gap-2 rounded-md border border-blue-600 bg-white px-3 text-[12px] font-medium text-blue-700 hover:bg-blue-50" type="button" onClick={()=>setShowInvite(true)}>
-              <Link2 size={14} />
-              Generate Registration Link
-            </button>
-            <Link href="/employee-registration" className="inline-flex h-8 items-center gap-2 rounded-md border border-slate-400 bg-white px-3 text-[12px] text-slate-600 hover:bg-slate-50">
-              <ExternalLink size={14} />
-              Candidate View
-            </Link>
-          </div>
-        </div>
-      </div>
-
       <div className="px-5 pb-8">
         <div className="mb-6 flex flex-col justify-between gap-3 lg:flex-row lg:items-start">
           <div>
@@ -179,8 +163,6 @@ export default function EmployeeRequestsPage() {
               <thead className="bg-slate-50 text-[10px] uppercase tracking-[0.08em] text-slate-500">
                 <tr>
                   <th className="px-4 py-4 font-medium">Access Token</th>
-                  <th className="px-4 py-4 font-medium">Designated Candidate</th>
-                  <th className="px-4 py-4 font-medium">Target Role / Department</th>
                   <th className="px-4 py-4 font-medium">Expires</th>
                   <th className="px-4 py-4 font-medium">Status</th>
                   <th className="px-4 py-4 text-right font-medium">Share Link</th>
@@ -190,9 +172,7 @@ export default function EmployeeRequestsPage() {
                 {invitationLinks.map((invite) => (
                   <tr key={invite.token}>
                     <td className="px-4 py-4 font-mono text-[12px] font-semibold text-blue-700">{invite.token}</td>
-                    <td className="px-4 py-4 text-[12px]">{invite.candidate}</td>
-                    <td className="px-4 py-4 text-[12px]">{invite.target}</td>
-                    <td className="px-4 py-4 text-[12px] text-slate-600">{invite.expires}</td>
+                    <td className="px-4 py-4 text-[12px] text-slate-600">{new Date(invite.expires).toLocaleString()}</td>
                     <td className="px-4 py-4"><span className="rounded-md bg-slate-200 px-2 py-1 text-[10px] text-slate-600">{invite.status}</span></td>
                     <td className="px-4 py-4 text-right">
                       <button onClick={()=>void copy(invite.token)} className="mr-2 rounded-md border border-slate-400 px-3 py-2 text-[12px] text-slate-700" type="button">Copy Link</button>

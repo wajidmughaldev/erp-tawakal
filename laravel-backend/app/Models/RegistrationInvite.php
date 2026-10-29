@@ -24,6 +24,6 @@ class RegistrationInvite extends Model
 
     public function details(bool $withToken = false): array
     {
-        return ['id' => (string) $this->id, 'candidateName' => $this->candidate_name, 'designation' => $this->designation, 'department' => $this->department, 'expiresAt' => $this->expires_at->toIso8601String(), 'status' => $this->status(), ...($this->role_category ? ['roleCategory' => $this->role_category] : []), ...($withToken ? ['token' => $this->token] : [])];
+        return ['id' => (string) $this->id, 'candidateName' => $this->candidate_name ?? '', 'designation' => $this->designation ?? '', 'department' => $this->department ?? '', 'expiresAt' => $this->expires_at->toIso8601String(), 'status' => $this->status(), ...($this->role_category ? ['roleCategory' => $this->role_category] : []), ...($withToken ? ['token' => $this->token] : [])];
     }
 }

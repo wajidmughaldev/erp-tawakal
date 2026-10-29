@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CandidateSubmissionRequest;
 use App\Http\Requests\EmployeeRequest;
 use App\Http\Resources\CandidateRequestResource;
+use App\Models\CandidateDocument;
 use App\Models\CandidateRequest;
 use App\Models\RegistrationInvite;
 use App\Services\EmployeeEnrollment;
+use App\Services\Notifier;
 use App\Support\CandidateFiles;
 use App\Support\EmployeeIdentity;
 use App\Support\InviteToken;
@@ -27,8 +29,9 @@ class CandidateRequestController extends Controller
     public function store(CandidateSubmissionRequest $request)
     {
         $stagedPath = null;
+        $stagedDocuments = [];
         try {
-            $candidate = DB::transaction(function () use ($request, &$stagedPath) {
+            $candidate = DB::transaction(function () use ($request, &$stagedPath, &$stagedDocuments) {
                 $invite = RegistrationInvite::where('token_digest', InviteToken::digest($request->validated('token')))->lockForUpdate()->first();
                 abort_unless($invite, 409, 'This invitation is unavailable.');
                 abort_unless($invite->status() === 'valid', 409, 'This invitation is expired or already used.');
@@ -44,6 +47,16 @@ class CandidateRequestController extends Controller
                     $candidate->photo_path = $stagedPath;
                 }
                 $candidate->save();
+                foreach ($request->validated('documents') ?? [] as $document) {
+                    $file = $document['file'];
+                    $path = 'candidate-requests/'.$candidate->id.'/documents/'.Str::random(40).'.'.$file->extension();
+                    if (! Storage::disk('employee_private')->putFileAs(dirname($path), $file, basename($path))) {
+                        throw new \RuntimeException('Candidate document storage failed.');
+                    }
+                    $stagedDocuments[] = $path;
+                    $name = trim(preg_replace('#[\x00-\x1F\x7F/\\\\]+#u', '', $file->getClientOriginalName()) ?? '');
+                    $candidate->documents()->create(['name' => $name === '' ? 'document.'.$file->extension() : Str::limit($name, 200, ''), 'type' => $document['type'], 'path' => $path]);
+                }
                 // File IO may span the expiration boundary; do not consume an expired invitation.
                 abort_unless($invite->expires_at->isAfter(now()), 409, 'This invitation has expired.');
                 $invite->used_at = now();
@@ -53,11 +66,14 @@ class CandidateRequestController extends Controller
             });
         } catch (Throwable $error) {
             $this->cleanup($stagedPath);
+            array_map(fn ($path) => $this->cleanup($path), $stagedDocuments);
             if ($error instanceof QueryException && ($error->errorInfo[1] ?? null) === 1062) {
                 abort(409, 'This invitation has already been submitted.');
             }
             throw $error;
         }
+
+        Notifier::send('requests', 'info', 'New registration form received', "{$candidate->candidate_name} submitted a registration form ({$candidate->tracking_id}).", ['request', $candidate->id]);
 
         // A public receipt confirms persistence without exposing the dossier or review data.
         return response()->json(['data' => ['id' => (string) $candidate->id, 'trackingId' => $candidate->tracking_id, 'status' => $candidate->status, 'submittedAt' => $candidate->created_at->toIso8601String(), 'documents' => []]], 201)->header('Cache-Control', 'no-store');
@@ -98,8 +114,9 @@ class CandidateRequestController extends Controller
     public function approve(Request $request, CandidateRequest $candidateRequest)
     {
         $stagedPath = null;
+        $copiedDocuments = [];
         try {
-            $candidate = DB::transaction(function () use ($request, $candidateRequest, &$stagedPath) {
+            $candidate = DB::transaction(function () use ($request, $candidateRequest, &$stagedPath, &$copiedDocuments) {
                 $current = CandidateRequest::whereKey($candidateRequest->id)->lockForUpdate()->firstOrFail();
                 abort_unless($current->status === 'pending', 409, 'Only pending requests can be approved.');
                 $validator = Validator::make(['dossier' => $current->dossier], (new EmployeeRequest)->rules());
@@ -115,6 +132,15 @@ class CandidateRequestController extends Controller
                     abort_unless(CandidateFiles::photoExists($current), 409, 'The candidate photo is unavailable.');
                 }
                 $employee = app(EmployeeEnrollment::class)->create($current->dossier, $current->photo_path, $current->invite->department, $stagedPath);
+                foreach ($current->documents as $document) {
+                    abort_unless(CandidateFiles::documentExists($current, $document->path), 409, 'A candidate document is unavailable.');
+                    $copy = 'employees/'.$employee->id.'/documents/'.Str::random(40).'.'.pathinfo($document->path, PATHINFO_EXTENSION);
+                    if (! Storage::disk('employee_private')->copy($document->path, $copy)) {
+                        throw new \RuntimeException('Employee document storage failed.');
+                    }
+                    $copiedDocuments[] = $copy;
+                    $employee->documents()->create(['name' => $document->name, 'type' => $document->type, 'path' => $copy]);
+                }
                 $current->status = 'approved';
                 $current->employee_id = $employee->id;
                 $current->reviewed_by = $request->user()->id;
@@ -125,11 +151,14 @@ class CandidateRequestController extends Controller
             });
         } catch (Throwable $error) {
             $this->cleanup($stagedPath);
+            array_map(fn ($path) => $this->cleanup($path), $copiedDocuments);
             if ($error instanceof QueryException && ($error->errorInfo[1] ?? null) === 1062 && str_contains($error->getMessage(), 'employees_cnic_lookup_unique')) {
                 abort(409, 'This identity is already enrolled.');
             }
             throw $error;
         }
+
+        Notifier::send('requests', 'success', 'Registration approved', "{$candidate->candidate_name} ({$candidate->tracking_id}) was approved and enrolled by {$request->user()->name}.", ['employee', $candidate->employee_id], $request->user());
 
         return $this->record($candidate);
     }
@@ -149,6 +178,8 @@ class CandidateRequestController extends Controller
             return $current;
         });
 
+        Notifier::send('requests', 'warning', 'Registration rejected', "{$candidate->candidate_name} ({$candidate->tracking_id}) was rejected by {$request->user()->name}.", ['request', $candidate->id], $request->user());
+
         return $this->record($candidate);
     }
 
@@ -162,10 +193,28 @@ class CandidateRequestController extends Controller
         return $disk->response($candidateRequest->photo_path, 'photo.'.pathinfo($candidateRequest->photo_path, PATHINFO_EXTENSION), ['Content-Type' => $mime, 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff'], 'inline');
     }
 
+    public function downloadDocument(CandidateDocument $candidateDocument)
+    {
+        $candidate = $candidateDocument->candidateRequest;
+        abort_unless($candidate && CandidateFiles::documentExists($candidate, $candidateDocument->path), 404);
+        $filename = basename(str_replace(['\\', "\r", "\n"], ['/', '', ''], $candidateDocument->name));
+
+        return Storage::disk('employee_private')->download($candidateDocument->path, $filename ?: 'document', ['Content-Type' => 'application/octet-stream', 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
+    }
+
+    public function checkCnic(Request $request)
+    {
+        $input = $request->validate(['token' => InviteToken::RULES, 'cnic' => ['required', 'string', 'regex:/^[0-9]{5}-[0-9]{7}-[0-9]$/']]);
+        $invite = RegistrationInvite::where('token_digest', InviteToken::digest($input['token']))->first();
+        abort_unless($invite && $invite->status() === 'valid', 409, 'This invitation is unavailable, expired or already used.');
+
+        return response()->json(['registered' => EmployeeIdentity::registered($input['cnic'])])->header('Cache-Control', 'no-store');
+    }
+
     private function validateRestrictions(RegistrationInvite $invite, array $dossier): void
     {
         $errors = [];
-        if (mb_strtolower(trim($dossier['designation'])) !== mb_strtolower(trim($invite->designation))) {
+        if (trim((string) $invite->designation) !== '' && mb_strtolower(trim($dossier['designation'])) !== mb_strtolower(trim($invite->designation))) {
             $errors['dossier.designation'] = ['Use the designation authorized by the invitation.'];
         }
         if ($invite->role_category !== null && $invite->role_category !== $dossier['roleCategory']) {

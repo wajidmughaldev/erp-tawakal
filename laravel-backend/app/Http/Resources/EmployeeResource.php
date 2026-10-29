@@ -17,7 +17,7 @@ class EmployeeResource extends JsonResource
         return [
             'id' => (string) $this->id, 'displayId' => $this->employee_id,
             'name' => $this->full_name, 'designation' => $this->designation,
-            'department' => $this->department ?? '', 'phone' => $this->phone ?? '', 'status' => $this->status,
+            'department' => $this->department ?? '', 'location' => $this->location ?? '', 'phone' => $this->phone ?? '', 'status' => $this->status,
             ...($photo ? ['photo' => $photo] : []),
             'dossier' => $dossier, 'documents' => EmployeeFiles::documents($this->resource), 'history' => [],
             'cards' => IdCardResource::collection($this->cards->sortByDesc('id')->values())->resolve($request),

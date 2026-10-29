@@ -16,8 +16,7 @@ class EmployeeDossier
             'primaryReference' => ['name' => 'Primary Test Reference', 'relation' => 'Former supervisor', 'contact' => 'Test contact/address'],
             'secondaryReference' => ['name' => 'Secondary Test Reference', 'relation' => 'Colleague', 'contact' => 'Secondary contact/address'],
             'roleCategory' => 'motorcycle', 'vehicleRegistration' => 'TEST-123', 'drivingLicence' => 'TEST-LICENCE', 'tokenTaxStatus' => 'Paid & Up to Date',
-            'checklist' => ['cnic' => true, 'bloodReport' => true, 'photographs' => true, 'utilityBill' => true],
-            'declarationAccepted' => true, 'signature' => 'Test Employee', 'signingDate' => '2026-01-10',
+            'declarationAccepted' => true,
         ], $overrides);
     }
 

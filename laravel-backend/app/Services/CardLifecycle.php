@@ -126,7 +126,7 @@ class CardLifecycle
 
     private function eligibleEmployee(Employee $employee): void
     {
-        abort_unless(! $employee->trashed() && $employee->status === 'active', 409, 'The employee must be active and not deleted.');
+        abort_unless(! $employee->trashed() && in_array($employee->status, Employee::WORKING_STATUSES, true), 409, 'The employee must be active or transferred, and not deleted.');
     }
 
     private function eligibleCard(IdCard $card): void

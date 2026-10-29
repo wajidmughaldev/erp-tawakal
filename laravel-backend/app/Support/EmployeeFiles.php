@@ -8,6 +8,14 @@ use Illuminate\Support\Facades\Storage;
 
 class EmployeeFiles
 {
+    public const DOCUMENT_TYPES = ['cnic', 'blood_report', 'photographs', 'utility_bill', 'other'];
+
+    public const DOCUMENT_MIMES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+
+    public const DOCUMENT_MAX_KB = 5120;
+
+    public const MAX_DOCUMENTS_PER_EMPLOYEE = 30;
+
     public static function exists(Employee $employee, ?string $path, string $folder): bool
     {
         $prefix = 'employees/'.$employee->id.'/'.$folder.'/';

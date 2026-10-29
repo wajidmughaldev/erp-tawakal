@@ -29,6 +29,8 @@ class EmployeeRequest extends FormRequest
         if (! is_array($dossier)) {
             throw ValidationException::withMessages(['dossier' => ['The dossier must be an object.']]);
         }
+        // Dossiers saved before the checklist and signature were retired still carry these keys.
+        unset($dossier['checklist'], $dossier['signature'], $dossier['signingDate']);
         if (($dossier['roleCategory'] ?? null) === 'office') {
             $dossier['vehicleRegistration'] = $dossier['drivingLicence'] = $dossier['tokenTaxStatus'] = '';
         }
@@ -40,7 +42,7 @@ class EmployeeRequest extends FormRequest
         $strings = ['present', 'string', 'max:1000'];
 
         return [
-            'dossier' => ['required', 'array:fullName,fatherName,designation,joiningDate,dateOfBirth,gender,maritalStatus,dependents,bloodGroup,cnic,cnicExpiry,residentialAddress,homePhone,mobileNumber,emergencyContact1,emergencyContact2,employers,primaryReference,secondaryReference,roleCategory,vehicleRegistration,drivingLicence,tokenTaxStatus,checklist,declarationAccepted,signature,signingDate'],
+            'dossier' => ['required', 'array:fullName,fatherName,designation,joiningDate,dateOfBirth,gender,maritalStatus,dependents,bloodGroup,cnic,cnicExpiry,residentialAddress,homePhone,mobileNumber,emergencyContact1,emergencyContact2,employers,primaryReference,secondaryReference,roleCategory,vehicleRegistration,drivingLicence,tokenTaxStatus,declarationAccepted'],
             'dossier.fullName' => ['required', 'string', 'max:255'],
             'dossier.fatherName' => ['required', 'string', 'max:255'],
             'dossier.designation' => ['required', 'string', 'max:255'],
@@ -88,14 +90,7 @@ class EmployeeRequest extends FormRequest
             'dossier.vehicleRegistration' => ['present', 'string', 'max:100', 'required_unless:dossier.roleCategory,office'],
             'dossier.drivingLicence' => ['present', 'string', 'max:100', 'required_unless:dossier.roleCategory,office'],
             'dossier.tokenTaxStatus' => ['present', Rule::in(['', 'Not Provided', 'Paid & Up to Date', 'Unpaid / Pending'])],
-            'dossier.checklist' => ['required', 'array:cnic,bloodReport,photographs,utilityBill'],
-            'dossier.checklist.cnic' => ['required', 'boolean'],
-            'dossier.checklist.bloodReport' => ['required', 'boolean'],
-            'dossier.checklist.photographs' => ['required', 'boolean'],
-            'dossier.checklist.utilityBill' => ['required', 'boolean'],
             'dossier.declarationAccepted' => ['required', 'accepted'],
-            'dossier.signature' => ['required', 'string', 'max:255'],
-            'dossier.signingDate' => ['required', 'date_format:Y-m-d'],
             'photo' => ['sometimes', 'file', 'mimetypes:image/jpeg,image/png,image/webp', 'mimes:jpg,jpeg,png,webp', 'max:3072', 'dimensions:min_width=1,min_height=1'],
         ];
     }
@@ -104,9 +99,6 @@ class EmployeeRequest extends FormRequest
     {
         $dossier = $this->validated('dossier');
         $dossier['dependents'] = (int) $dossier['dependents'];
-        foreach ($dossier['checklist'] as &$value) {
-            $value = (bool) $value;
-        }
         $dossier['declarationAccepted'] = true;
 
         return $dossier;

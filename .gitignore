@@ -14,3 +14,7 @@ vendor/
 *.sqlite-journal
 *.pem
 *.key
+
+# production build output
+.next-export/
+release/

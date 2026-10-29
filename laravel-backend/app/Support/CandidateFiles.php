@@ -7,6 +7,13 @@ use Illuminate\Support\Facades\Storage;
 
 class CandidateFiles
 {
+    public static function documentExists(CandidateRequest $candidate, ?string $path): bool
+    {
+        $prefix = 'candidate-requests/'.$candidate->id.'/documents/';
+
+        return $path !== null && str_starts_with($path, $prefix) && preg_match('/^[a-zA-Z0-9_-]+\.(?:pdf|jpg|jpeg|png|webp)$/D', substr($path, strlen($prefix))) === 1 && Storage::disk('employee_private')->exists($path);
+    }
+
     public static function photoExists(CandidateRequest $candidate): bool
     {
         $prefix = 'candidate-requests/'.$candidate->id.'/photos/';

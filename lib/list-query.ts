@@ -1,7 +1,7 @@
 export function initialFilter(params: {get:(key:string)=>string|null}, key:string, fallback:string) {
   const raw=params.get(key);
   if(!raw)return fallback;
-  const labels:Record<string,string>={active:'Active',inactive:'Inactive',resigned:'Resigned',transferred:'Transferred',expiring:'Expiring Soon',expiring_soon:'Expiring Soon',expired:'Expired',revoked:'Deactivated',replaced:'Replaced',expiry_asc:'Expiry Soonest',issue_desc:'Newest First',issue_asc:'Oldest First'};
+  const labels:Record<string,string>={active:'Active',resigned:'Resigned',transferred:'Transferred',expiring:'Expiring Soon',expiring_soon:'Expiring Soon',expired:'Expired',revoked:'Revoked',replaced:'Replaced',expiry_asc:'Expiry Soonest',issue_desc:'Newest First',issue_asc:'Oldest First'};
   return labels[raw]??raw;
 }
 export function initialPage(params:{get:(key:string)=>string|null}) {const page=Number(params.get('page'));return Number.isInteger(page)&&page>0?page:1;}

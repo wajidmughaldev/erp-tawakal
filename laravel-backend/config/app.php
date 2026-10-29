@@ -54,6 +54,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Public origin of the Next.js portal; used in password reset links.
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:3000'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

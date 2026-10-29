@@ -20,7 +20,7 @@ php artisan portal:create-user
 php artisan serve --port=8000
 ~~~
 
-Use PowerShell Copy-Item .env.example .env on Windows. The account command prompts for an email, unique username, one of the existing roles, and a hidden operator-supplied password. No accounts or default passwords are seeded. Passwords use Laravel's hashed cast and bcrypt (12 rounds outside tests). Password inputs are capped at 72 bytes to avoid bcrypt truncation. Users have unique email/optional username, a database enum role, is_active, remember_token and timestamps; passwords and remember tokens are hidden. No new permission rules are introduced: all three supported roles pass the same portal-role gate at this checkpoint.
+Use PowerShell Copy-Item .env.example .env on Windows. The first superadmin is created by `php artisan db:seed` from SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD and SUPERADMIN_NAME in .env; an existing account is never overwritten. `php artisan portal:create-user` adds further accounts (email, role superadmin or manager, hidden password). Passwords use bcrypt and are capped at 72 bytes.
 
 Database configuration uses DB_CONNECTION=mysql and DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD. Local defaults use file sessions and file cache; no Redis, Docker or queue worker is needed. Session lifetime is 120 minutes; remember uses Laravel's remember cookie. Sessions are encrypted at rest, their cookie is always HttpOnly, and login renews the session ID. Logout invalidates the session, renews the CSRF token and clears the remember cookie.
 
@@ -29,11 +29,11 @@ Database configuration uses DB_CONNECTION=mysql and DB_HOST, DB_PORT, DB_DATABAS
 | Method | Endpoint | Behavior |
 |---|---|---|
 | GET | /sanctum/csrf-cookie | Sanctum 204; sets XSRF-TOKEN and session cookies |
-| POST | /api/v1/auth/login | identifier, password, optional boolean remember; 204 on real credentials, 401 on invalid/inactive credentials |
+| POST | /api/v1/auth/login | email, password, optional boolean remember; 204 on real credentials, 401 on invalid/inactive credentials |
 | GET | /api/v1/auth/me | Authenticated 200 with data: id (string), name, email, role; guest 401 |
 | POST | /api/v1/auth/logout | Authenticated, CSRF-protected 204; guest 401 when valid CSRF accompanies request |
 
-identifier accepts email or username, normalized to lowercase. Only admin, co-admin and manager are allowed by the model, MySQL schema and middleware. Inactive/unsupported sessions receive 403. Auth JSON responses do not include secrets and successful auth responses use Cache-Control: no-store. Bearer token retrieval is disabled; this is cookie authentication only, with no token issuance or personal-access-token table.
+Login is by email only (lowercased). Roles: superadmin and manager. Password reset: POST /api/v1/auth/forgot-password {email} (always 204) and /api/v1/auth/reset-password {token,email,password,password_confirmation}; signed-in users change their password with POST /api/v1/auth/change-password {current_password,password,password_confirmation}. New passwords need 8+ characters with upper case, lower case and a number. Inactive/unsupported sessions receive 403. Bearer tokens are disabled; cookie authentication only.
 
 The existing frontend already requests CSRF then login then me and sends decoded XSRF-TOKEN as X-XSRF-TOKEN. Auth routes use web middleware so session/CSRF protection also applies when Origin is absent. Other API routes use Sanctum stateful middleware. Missing/stale CSRF on mutations produces 419 before authentication/validation; validation produces 422. Login throttling permits 5 requests/minute per normalized identifier + IP and 30/minute per IP, returning 429 with Retry-After. Both successful and failed attempts count.
 

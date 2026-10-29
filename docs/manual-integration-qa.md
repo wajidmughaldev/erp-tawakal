@@ -18,7 +18,7 @@ if (!(Test-Path .env.integration)) { Copy-Item .env.example .env.integration }
 notepad .env.integration
 ```
 
-Set these values in `.env.integration`, plus the dedicated DB account/password and actual MySQL port. Use a new APP_KEY; do not copy a real application's key.
+Set these values in `.env.integration`, plus the dedicated DB account/password and actual MySQL port. Use a new APP\_KEY; do not copy a real application's key.
 
 ```dotenv
 APP_ENV=integration
@@ -92,15 +92,15 @@ Open `http://localhost:3200/login`. Normal developer ports remain 3000/8000; the
 Record PASS or FAIL against each item; do not put passwords, full CNICs, invitation URLs or QR payloads in the report.
 
 | Result | Check |
-|---|---|
-| ___ | Wrong password shows an error; valid login opens the portal; private navigation while logged out redirects to login. |
-| ___ | Create a fictional employee through all five dossier sections, including employers, references, checklist, declaration and photo. Directory shows the official employee ID; profile retains all submitted fields and displays the photo. |
+| --- | --- |
+| PASS | Wrong password shows an error; valid login opens the portal; private navigation while logged out redirects to login. |
+| PASS | Create a fictional employee through all five dossier sections, including employers, references, checklist, declaration and photo. Directory shows the official employee ID; profile retains all submitted fields and displays the photo. |
 | ___ | Search by name, official ID, phone and fictional CNIC. Combine card status and expiry filters; pagination totals match records. |
 | ___ | Open the same employee edit form in two tabs. Save A, then save stale B. B must show a conflict. Reload latest, confirm discarding unsaved edits, then deliberately save again. Photo persists without a replacement. |
 | ___ | Create an invitation without an implicit role restriction. In a private browser, complete an English candidate dossier and submit once. Administrator reviews private photo/details and approves; exactly one employee is created. Used link cannot be resubmitted. |
 | ___ | Submit an Urdu candidate with an office role; check RTL labels. Administrator rejects with a reason; no employee is created. Expired/malformed links show useful errors. |
 | ___ | With policy unconfigured, issuance and renewal are disabled with an explanation. No fake success appears. |
-| ___ | For fictional QA only, run `php tests/integration/backend.php policy selected_years`; issue a card, inspect official data and photograph, preview/print it, and verify its QR publicly. Then test `eleven_months`: label changes and no years selector appears. |
+| ___ | For fictional QA only, run php tests/integration/backend.php policy selected_years; issue a card, inspect official data and photograph, preview/print it, and verify its QR publicly. Then test eleven_months: label changes and no years selector appears. |
 | ___ | Renew existing card: compare the displayed current/proposed expiry, then explicitly confirm. Same QR, one extension. A transport replay must use the same Idempotency-Key and original If-Match and must not extend twice. |
 | ___ | Lose a renewal response, then refresh. The unresolved operation is restored without sending a write. Explicit Retry / reconcile uses the original key/revision; confirmed success clears its sessionStorage entry. No private data or employee-edit revision is stored. |
 | ___ | Open two renewal tabs on the same revision. Confirm A, then B: B receives 412 without extending. Explicitly discard the unapplied attempt, review updated expiry/preview, and confirm a deliberate new renewal with a fresh revision and key. |

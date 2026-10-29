@@ -1,0 +1,51 @@
+name: Build website
+
+# Every push to main builds the static website and publishes it to the "web-build" branch.
+# The server only has to fetch that branch (see deploy/GIT-DEPLOY.md); it does not need Node.js.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm run test:frontend
+
+      - name: Build static site
+        run: npx next build
+        env:
+          NEXT_EXPORT: '1'
+          NEXT_OUTPUT_DIR: .next-export
+          # Set a repository variable SITE_URL to change this (Settings > Secrets and variables > Actions > Variables).
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.SITE_URL || 'https://ems.tawakalent.com' }}
+
+      - name: Add server files
+        run: cp deploy/web/.htaccess deploy/web/api.php .next-export/
+
+      - name: Publish to the web-build branch
+        run: |
+          cd .next-export
+          git init -b web-build
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Website build from ${GITHUB_SHA}"
+          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" web-build

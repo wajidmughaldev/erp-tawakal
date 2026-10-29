@@ -6,7 +6,8 @@ import {ApiError} from '@/lib/api-client';
 
 const SessionContext = createContext<{user: SessionUser | null; refresh: () => Promise<void>}>({user: null, refresh: async () => {}});
 export const useSession = () => useContext(SessionContext);
-const publicPaths = ['/login', '/employee-registration', '/verify', '/scan'];
+// The home page only redirects to login and must not wait for a session check.
+const publicPaths = ['/', '/login', '/forgot-password', '/reset-password', '/employee-registration', '/verify', '/scan'];
 
 export function SessionProvider({children}: {children: React.ReactNode}) {
   const pathname = usePathname();
