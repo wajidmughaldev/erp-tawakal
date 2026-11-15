@@ -17,7 +17,8 @@ export function SessionProvider({children}: {children: React.ReactNode}) {
   const [confirmedPath, setConfirmedPath] = useState('');
   const [error, setError] = useState('');
   async function refresh() {
-    setError(''); setConfirmedPath('');
+    // Once a session is confirmed, tab changes revalidate silently instead of blocking the page.
+    setError(''); if (!user) setConfirmedPath('');
     try { const result = await auth.me(); setUser(result.data); setConfirmedPath(pathname); }
     catch (cause) {
       setUser(null);
@@ -31,5 +32,5 @@ export function SessionProvider({children}: {children: React.ReactNode}) {
     window.addEventListener('portal-session-expired', expired);
     return () => window.removeEventListener('portal-session-expired', expired);
   }, [router]);
-  return <SessionContext.Provider value={{user, refresh}}>{isPublic || (user && confirmedPath === pathname) ? children : <main className="grid min-h-screen place-items-center p-6"><div className="rounded-lg border border-slate-200 bg-white p-6" role="status">{error || 'Confirming your session…'}{error && <button onClick={() => void refresh()} className="ml-4 text-blue-700">Retry</button>}</div></main>}</SessionContext.Provider>;
+  return <SessionContext.Provider value={{user, refresh}}>{isPublic || user ? children : <main className="grid min-h-screen place-items-center p-6"><div className="rounded-lg border border-slate-200 bg-white p-6" role="status">{error || 'Confirming your session…'}{error && <button onClick={() => void refresh()} className="ml-4 text-blue-700">Retry</button>}</div></main>}</SessionContext.Provider>;
 }
