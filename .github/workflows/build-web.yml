@@ -49,3 +49,26 @@ jobs:
           git add -A
           git commit -m "Website build from ${GITHUB_SHA}"
           git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" web-build
+
+  # Runs only when you press "Run workflow" by hand: logs in to Hostinger over SSH and runs deploy/update-server.sh.
+  # Needs the repository secrets SSH_HOST, SSH_PORT, SSH_USER and SSH_PRIVATE_KEY (see deploy/GIT-DEPLOY.md).
+  deploy:
+    needs: build
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Hostinger
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          for v in SSH_HOST SSH_PORT SSH_USER SSH_PRIVATE_KEY; do
+            [ -n "${!v}" ] || { echo "::error::Repository secret $v is not set"; exit 1; }
+          done
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p "$SSH_PORT" "$SSH_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" 'bash ~/domains/tawakalent.com/ems-repo/deploy/update-server.sh'
