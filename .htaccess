@@ -1,0 +1,58 @@
+# Web root of https://ems.tawakalent.com  (public_html/ems)
+# Serves the static site and forwards /api, /sanctum and /up to Laravel (api.php).
+
+Options -Indexes -MultiViews
+DirectorySlash Off
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Always HTTPS
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Pass headers Laravel needs
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteCond %{HTTP:x-xsrf-token} .
+RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+# Never expose git data or environment files
+RewriteRule (^|/)\.(git|env) - [R=404,L]
+
+# API -> Laravel
+RewriteRule ^(api|sanctum|up)(/|$) api.php [L,NC]
+
+# Home page -> login
+RewriteRule ^$ /login [R=302,L]
+
+# Long-lived caching for fingerprinted build files
+RewriteRule ^_next/static/ - [E=IMMUTABLE_ASSET:1]
+
+# /employees -> employees.html, /employees/view -> employees/view.html
+RewriteCond %{REQUEST_FILENAME}.html -f
+RewriteRule ^(.+?)/?$ $1.html [L]
+</IfModule>
+
+ErrorDocument 404 /404.html
+
+# Never serve dotfiles
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+    Header always set Strict-Transport-Security "max-age=31536000"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'self' blob:; frame-src 'self' blob:; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    # Pages are never cached (they change with each release); build files are.
+    <FilesMatch "\.(html|txt)$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+    Header set Cache-Control "public, max-age=31536000, immutable" env=IMMUTABLE_ASSET
+</IfModule>
